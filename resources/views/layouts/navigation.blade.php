@@ -17,17 +17,58 @@
         </a>
 
         @if(auth()->user()->role === 'superadmin')
-            <a href="#" class="block px-4 py-2 rounded-lg hover:bg-white/20">
+
+            <a href="#"
+               class="block px-4 py-2 rounded-lg hover:bg-white/20 transition">
                 Pengaturan Presensi
             </a>
 
-            <a href="#" class="block px-4 py-2 rounded-lg hover:bg-white/20">
+            <a href="#"
+               class="block px-4 py-2 rounded-lg hover:bg-white/20 transition">
                 Manajemen Admin
             </a>
+
+            {{-- DROPDOWN KEPEGAWAIAN --}}
+            <div x-data="{ open: false }" class="mt-2">
+
+                <button @click="open = !open"
+                        class="w-full flex justify-between items-center px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                    <span>Kepegawaian</span>
+                    <svg :class="{'rotate-180': open}"
+                         class="w-4 h-4 transform transition-transform duration-300"
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+
+                <div x-show="open"
+                     x-transition
+                     class="ml-4 mt-1 space-y-1">
+
+                    <a href="{{ route('pegawai.index') }}"
+                       class="block px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                        Data Pegawai
+                    </a>
+
+                    <a href="{{ route('pegawai.wajah') }}"
+                       class="block px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                        Wajah Pegawai
+                    </a>
+
+                    <a href="{{ route('pegawai.dokumen') }}"
+                       class="block px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                        Dokumen Ketidakhadiran
+                    </a>
+
+                </div>
+            </div>
+
         @endif
 
         @if(auth()->user()->role === 'admin')
-            <a href="#" class="block px-4 py-2 rounded-lg hover:bg-white/20">
+            <a href="#"
+               class="block px-4 py-2 rounded-lg hover:bg-white/20 transition">
                 Monitoring ASN
             </a>
         @endif

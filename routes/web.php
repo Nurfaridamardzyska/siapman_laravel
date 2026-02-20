@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SuperAdmin\PegawaiController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -18,15 +19,23 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::middleware(['auth','role:superadmin'])->prefix('superadmin')->group(function () {
+
     Route::get('/dashboard', function () {
         return view('superadmin.dashboard');
     });
+
+    Route::get('/pegawai', [PegawaiController::class, 'index'])->name('pegawai.index');
+    Route::get('/pegawai/wajah', [PegawaiController::class, 'wajah'])->name('pegawai.wajah');
+    Route::get('/pegawai/dokumen', [PegawaiController::class, 'dokumen'])->name('pegawai.dokumen');
+
 });
 
 Route::middleware(['auth','role:admin'])->prefix('admin')->group(function () {
+
     Route::get('/dashboard', function () {
         return view('admin.dashboard');
     });
+
 });
 
 require __DIR__.'/auth.php';

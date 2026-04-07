@@ -1,0 +1,165 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\AbsenceDocument;
+use App\Models\Employee;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+
+class AbsenceDocumentController extends Controller
+{
+    public function index(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user->nip) {
+            return response()->json([
+                'message' => 'User ini belum memiliki NIP',
+                'data' => [],
+            ], 422);
+        }
+
+        $employee = Employee::where('nip', $user->nip)->first();
+
+        if (!$employee) {
+            return response()->json([
+                'message' => 'Data pegawai tidak ditemukan berdasarkan NIP user',
+                'data' => [],
+            ], 404);
+        }
+
+        $documents = AbsenceDocument::where('employee_id', $employee->id)
+            ->orderByDesc('start_date')
+            ->orderByDesc('id')
+            ->get();
+
+        return response()->json([
+            'message' => 'Dokumen ketidakhadiran berhasil diambil',
+            'data' => $documents->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'document_type' => $item->document_type,
+                    'title' => $item->title,
+                    'file_path' => $item->file_path,
+                    'file_url' => $item->file_path ? asset('storage/' . $item->file_path) : null,
+                    'start_date' => optional($item->start_date)->format('Y-m-d'),
+                    'end_date' => optional($item->end_date)->format('Y-m-d'),
+                    'status' => $item->status,
+                    'approved_by' => $item->approved_by,
+                    'notes' => $item->notes,
+                    'created_at' => optional($item->created_at)->format('Y-m-d H:i:s'),
+                ];
+            }),
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user->nip) {
+            return response()->json([
+                'message' => 'User ini belum memiliki NIP',
+            ], 422);
+        }
+
+        $employee = Employee::where('nip', $user->nip)->first();
+
+        if (!$employee) {
+            return response()->json([
+                'message' => 'Data pegawai tidak ditemukan berdasarkan NIP user',
+            ], 404);
+        }
+
+        $request->validate([
+            'document_type' => 'required|string|max:100',
+            'title' => 'required|string|max:255',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'notes' => 'nullable|string',
+            'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+        ]);
+
+        $filePath = null;
+
+        if ($request->hasFile('file')) {
+            $filePath = $request->file('file')->store('absence_documents', 'public');
+        }
+
+        $document = AbsenceDocument::create([
+            'employee_id' => $employee->id,
+            'document_type' => $request->document_type,
+            'title' => $request->title,
+            'file_path' => $filePath,
+            'start_date' => $request->start_date,
+            'end_date' => $request->end_date,
+            'status' => 'pending',
+            'approved_by' => null,
+            'notes' => $request->notes,
+        ]);
+
+        return response()->json([
+            'message' => 'Dokumen ketidakhadiran berhasil dikirim',
+            'data' => [
+                'id' => $document->id,
+                'document_type' => $document->document_type,
+                'title' => $document->title,
+                'file_path' => $document->file_path,
+                'file_url' => $document->file_path ? asset('storage/' . $document->file_path) : null,
+                'start_date' => optional($document->start_date)->format('Y-m-d'),
+                'end_date' => optional($document->end_date)->format('Y-m-d'),
+                'status' => $document->status,
+                'approved_by' => $document->approved_by,
+                'notes' => $document->notes,
+            ],
+        ], 201);
+    }
+
+    public function show(Request $request, $id)
+    {
+        $user = $request->user();
+
+        if (!$user->nip) {
+            return response()->json([
+                'message' => 'User ini belum memiliki NIP',
+            ], 422);
+        }
+
+        $employee = Employee::where('nip', $user->nip)->first();
+
+        if (!$employee) {
+            return response()->json([
+                'message' => 'Data pegawai tidak ditemukan berdasarkan NIP user',
+            ], 404);
+        }
+
+        $document = AbsenceDocument::where('employee_id', $employee->id)
+            ->where('id', $id)
+            ->first();
+
+        if (!$document) {
+            return response()->json([
+                'message' => 'Dokumen tidak ditemukan',
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'Detail dokumen ketidakhadiran berhasil diambil',
+            'data' => [
+                'id' => $document->id,
+                'document_type' => $document->document_type,
+                'title' => $document->title,
+                'file_path' => $document->file_path,
+                'file_url' => $document->file_path ? asset('storage/' . $document->file_path) : null,
+                'start_date' => optional($document->start_date)->format('Y-m-d'),
+                'end_date' => optional($document->end_date)->format('Y-m-d'),
+                'status' => $document->status,
+                'approved_by' => $document->approved_by,
+                'notes' => $document->notes,
+                'created_at' => optional($document->created_at)->format('Y-m-d H:i:s'),
+            ],
+        ]);
+    }
+}

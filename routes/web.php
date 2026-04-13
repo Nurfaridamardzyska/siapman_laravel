@@ -2,12 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
-
-/*
-|--------------------------------------------------------------------------
-| CONTROLLER
-|--------------------------------------------------------------------------
-*/
+use Illuminate\Support\Facades\Auth;
 
 // ADMIN
 use App\Http\Controllers\Admin\AdminDashboardController;
@@ -46,13 +41,25 @@ Route::get('/', function () {
 
 /*
 |--------------------------------------------------------------------------
-| DASHBOARD
+| DASHBOARD (AUTO REDIRECT SESUAI ROLE)
 |--------------------------------------------------------------------------
 */
 
-Route::get('/dashboard', function () {
+Route::middleware(['auth', 'verified'])->get('/dashboard', function () {
+
+    $role = Auth::user()->role;
+
+    if ($role === 'admin') {
+        return redirect()->route('admin.dashboard');
+    }
+
+    if ($role === 'superadmin') {
+        return redirect()->route('superadmin.dashboard');
+    }
+
     return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+
+})->name('dashboard');
 
 /*
 |--------------------------------------------------------------------------
@@ -61,14 +68,9 @@ Route::get('/dashboard', function () {
 */
 
 Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])
-        ->name('profile.edit');
-
-    Route::patch('/profile', [ProfileController::class, 'update'])
-        ->name('profile.update');
-
-    Route::delete('/profile', [ProfileController::class, 'destroy'])
-        ->name('profile.destroy');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
 /*
@@ -82,209 +84,75 @@ Route::middleware(['auth', 'role:superadmin'])
     ->name('superadmin.')
     ->group(function () {
 
-        /*
-        |--------------------------------------------------------------------------
-        | DASHBOARD
-        |--------------------------------------------------------------------------
-        */
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-        Route::get('/dashboard', [DashboardController::class, 'index'])
-            ->name('dashboard');
-
-        /*
-        |--------------------------------------------------------------------------
-        | KEPEGAWAIAN
-        |--------------------------------------------------------------------------
-        */
-
+        // KEPEGAWAIAN
         Route::resource('pegawai', PegawaiController::class);
 
-        Route::get('pegawai-wajah', [PegawaiController::class, 'wajah'])
-            ->name('pegawai.wajah');
+        Route::get('pegawai-wajah', [PegawaiController::class, 'wajah'])->name('pegawai.wajah');
+        Route::post('pegawai/{pegawai}/wajah', [PegawaiController::class, 'storeWajah'])->name('pegawai.wajah.store');
+        Route::delete('wajah/{face}', [PegawaiController::class, 'deleteWajah'])->name('pegawai.wajah.delete');
+        Route::patch('wajah/{face}/aktif', [PegawaiController::class, 'setAktif'])->name('pegawai.wajah.aktif');
 
-        Route::post('pegawai/{pegawai}/wajah', [PegawaiController::class, 'storeWajah'])
-            ->name('pegawai.wajah.store');
+        Route::get('ketidakhadiran', [PegawaiController::class, 'ketidakhadiran'])->name('pegawai.ketidakhadiran');
+        Route::patch('ketidakhadiran/leave/{leave}', [PegawaiController::class, 'updateLeaveStatus'])->name('pegawai.leave.update');
+        Route::patch('ketidakhadiran/fault/{fault}', [PegawaiController::class, 'updateFaultStatus'])->name('pegawai.fault.update');
 
-        Route::delete('wajah/{face}', [PegawaiController::class, 'deleteWajah'])
-            ->name('pegawai.wajah.delete');
+        // PENGGUNA
+        Route::get('pengguna', [PegawaiController::class, 'pengguna'])->name('pengguna.index');
+        Route::get('pengguna/create', [PegawaiController::class, 'createPengguna'])->name('pengguna.create');
+        Route::post('pengguna', [PegawaiController::class, 'storePengguna'])->name('pengguna.store');
+        Route::delete('pengguna/{user}', [PegawaiController::class, 'destroyPengguna'])->name('pengguna.delete');
 
-        Route::patch('wajah/{face}/aktif', [PegawaiController::class, 'setAktif'])
-            ->name('pegawai.wajah.aktif');
-
-        Route::get('ketidakhadiran', [PegawaiController::class, 'ketidakhadiran'])
-            ->name('pegawai.ketidakhadiran');
-
-        Route::patch('ketidakhadiran/leave/{leave}', [PegawaiController::class, 'updateLeaveStatus'])
-            ->name('pegawai.leave.update');
-
-        Route::patch('ketidakhadiran/fault/{fault}', [PegawaiController::class, 'updateFaultStatus'])
-            ->name('pegawai.fault.update');
-
-        /*
-        |--------------------------------------------------------------------------
-        | PENGGUNA
-        |--------------------------------------------------------------------------
-        */
-
-        Route::get('pengguna', [PegawaiController::class, 'pengguna'])
-            ->name('pengguna.index');
-
-        Route::get('pengguna/create', [PegawaiController::class, 'createPengguna'])
-            ->name('pengguna.create');
-
-        Route::post('pengguna', [PegawaiController::class, 'storePengguna'])
-            ->name('pengguna.store');
-
-        Route::get('pengguna/export', [PegawaiController::class, 'exportPengguna'])
-            ->name('pengguna.export');
-
-        Route::post('pengguna/import', [PegawaiController::class, 'importPengguna'])
-            ->name('pengguna.import');
-
-        Route::patch('pengguna/bulk-status', [PegawaiController::class, 'bulkStatus'])
-            ->name('pengguna.bulk-status');
-
-        Route::get('pengguna/{user}/edit', [PegawaiController::class, 'editPengguna'])
-            ->name('pengguna.edit');
-
-        Route::put('pengguna/{user}', [PegawaiController::class, 'updatePengguna'])
-            ->name('pengguna.update');
-
-        Route::patch('pengguna/{user}/reset', [PegawaiController::class, 'resetPassword'])
-            ->name('pengguna.reset');
-
-        Route::patch('pengguna/{user}/status', [PegawaiController::class, 'toggleStatus'])
-            ->name('pengguna.status');
-
-        Route::get('pengguna/{user}/riwayat-login', [PegawaiController::class, 'riwayatLogin'])
-            ->name('pengguna.riwayat-login');
-
-        Route::get('pengguna/{user}/perangkat', [PegawaiController::class, 'perangkat'])
-            ->name('pengguna.perangkat');
-
-        Route::get('pengguna/{user}/lokasi-absen', [PegawaiController::class, 'lokasiAbsen'])
-            ->name('pengguna.lokasi-absen');
-
-        Route::get('pengguna/{user}/detail-akses', [PegawaiController::class, 'detailAkses'])
-            ->name('pengguna.detail-akses');
-
-        Route::delete('pengguna/{user}', [PegawaiController::class, 'destroyPengguna'])
-            ->name('pengguna.delete');
-
-        /*
-        |--------------------------------------------------------------------------
-        | ABSENSI
-        |--------------------------------------------------------------------------
-        */
-
+        // ABSENSI
         Route::resource('absensi/kategori-jadwal-kerja', WeeklyScheduleCategoryController::class)
             ->names('absensi.kategori-jadwal-kerja');
 
         Route::resource('absensi/jadwal-kerja', WeeklyScheduleController::class)
-            ->parameters(['jadwal-kerja' => 'jadwal_kerja'])
             ->names('absensi.jadwal-kerja');
 
         Route::resource('absensi/lokasi-absen-instansi', CompanyLocationController::class)
-            ->parameters(['lokasi-absen-instansi' => 'lokasi_absen_instansi'])
             ->names('absensi.lokasi-absen-instansi');
 
         Route::resource('absensi/lokasi-absen', LocationController::class)
-            ->parameters(['lokasi-absen' => 'lokasi_absen'])
             ->names('absensi.lokasi-absen');
 
         Route::resource('absensi/perangkat-pengguna', UserDeviceController::class)
-            ->parameters(['perangkat-pengguna' => 'perangkat_pengguna'])
             ->names('absensi.perangkat-pengguna');
 
-        /*
-        |--------------------------------------------------------------------------
-        | LOKASI ABSEN PEGAWAI
-        |--------------------------------------------------------------------------
-        */
-
+        // LOKASI ABSEN PEGAWAI
         Route::get('absensi/lokasi-absen-pegawai', [EmployeeLocationController::class, 'index'])
             ->name('absensi.lokasi-absen-pegawai.index');
 
-        Route::post('absensi/lokasi-absen-pegawai/bulk', [EmployeeLocationController::class, 'bulkStore'])
-            ->name('absensi.lokasi-absen-pegawai.bulk');
-
-        Route::get('absensi/lokasi-absen-pegawai/{employee}', [EmployeeLocationController::class, 'show'])
-            ->name('absensi.lokasi-absen-pegawai.show');
-
-        Route::post('absensi/lokasi-absen-pegawai', [EmployeeLocationController::class, 'store'])
-            ->name('absensi.lokasi-absen-pegawai.store');
-
-        /*
-        |--------------------------------------------------------------------------
-        | LAPOR KENDALA
-        |--------------------------------------------------------------------------
-        */
-
+        // KENDALA MESIN
         Route::resource('absensi/lapor-kendala-absensi', MachineFaultController::class)
-            ->parameters(['lapor-kendala-absensi' => 'lapor_kendala_absensi'])
             ->names('absensi.lapor-kendala-absensi');
 
-        /*
-        |--------------------------------------------------------------------------
-        | MESIN
-        |--------------------------------------------------------------------------
-        */
-
+        // MESIN
         Route::get('absensi/mesin', [MachineController::class, 'index'])
             ->name('absensi.mesin.index');
 
-        /*
-        |--------------------------------------------------------------------------
-        | RIWAYAT PRESENSI
-        |--------------------------------------------------------------------------
-        */
-
+        // RIWAYAT PRESENSI
         Route::get('absensi/riwayat-presensi', [AttendanceLogController::class, 'index'])
             ->name('absensi.riwayat-presensi.index');
 
-        Route::get('absensi/riwayat-presensi/export', [AttendanceLogController::class, 'export'])
-            ->name('absensi.riwayat-presensi.export');
-
-        Route::get('absensi/riwayat-presensi/{attendance_log}', [AttendanceLogController::class, 'show'])
-            ->name('absensi.riwayat-presensi.show');
-
-        /*
-        |--------------------------------------------------------------------------
-        | LAPORAN
-        |--------------------------------------------------------------------------
-        */
-
+        // LAPORAN
         Route::get('laporan/presensi-harian', [LaporanController::class, 'presensiHarian'])
             ->name('laporan.presensi-harian');
 
         Route::get('laporan/presensi-bulanan', [LaporanController::class, 'presensiBulanan'])
             ->name('laporan.presensi-bulanan');
 
-        /*
-        |--------------------------------------------------------------------------
-        | MASTER
-        |--------------------------------------------------------------------------
-        */
-
+        // MASTER
         Route::resource('master/tipe-dokumen', DocumentTypeController::class)
             ->names('master.tipe-dokumen');
 
         Route::resource('master/instansi', CompanyController::class)
             ->names('master.instansi');
 
-        /*
-        |--------------------------------------------------------------------------
-        | KONFIGURASI
-        |--------------------------------------------------------------------------
-        */
-
-        Route::resource('tipe-pegawai', EmployeeTypeController::class)
-            ->except('show')
-            ->names('tipe-pegawai');
-
-        Route::resource('hari-libur', HolidayController::class)
-            ->except('show')
-            ->names('hari-libur');
+        // KONFIGURASI
+        Route::resource('tipe-pegawai', EmployeeTypeController::class)->except('show');
+        Route::resource('hari-libur', HolidayController::class)->except('show');
     });
 
 /*
@@ -297,10 +165,21 @@ Route::middleware(['auth', 'role:admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
+
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])
             ->name('dashboard');
+
         Route::get('/dashboard/stats', [AdminDashboardController::class, 'stats'])
-        ->name('dashboard.stats');
+            ->name('dashboard.stats');
+
+        Route::get('/presensi', [AdminDashboardController::class, 'presensi'])
+            ->name('presensi');
+
+        Route::get('/pegawai', [AdminDashboardController::class, 'pegawai'])
+            ->name('pegawai');
+
+        Route::get('/monitoring', [AdminDashboardController::class, 'monitoring'])
+            ->name('monitoring');
     });
 
 require __DIR__ . '/auth.php';

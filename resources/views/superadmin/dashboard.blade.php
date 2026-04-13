@@ -67,7 +67,13 @@
                     <p class="text-sm font-bold uppercase tracking-wide text-sky-600">
                         {{ $card['title'] }}
                     </p>
-                    <div class="mt-3 text-3xl font-extrabold leading-tight text-slate-700">
+                    @php
+                        $value = (string) $card['value'];
+                        $isNumeric = is_numeric($value);
+                        $isLong = strlen($value) > 15;
+                        $textSize = $isNumeric ? 'text-4xl' : ($isLong ? 'text-lg whitespace-normal leading-snug' : 'text-2xl whitespace-normal');
+                    @endphp
+                    <div class="mt-3 {{ $textSize }} font-extrabold text-slate-700 break-words line-clamp-3">
                         {{ $card['value'] }}
                     </div>
                     <p class="mt-2 text-sm text-slate-500">{{ $card['subtitle'] }}</p>

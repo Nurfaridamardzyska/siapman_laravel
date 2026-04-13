@@ -21,9 +21,9 @@ class AttendanceLog extends Model
         'attendance_date' => 'date',
     ];
 
-    public function employee()
+        public function employee()
     {
-        return $this->belongsTo(Employee::class, 'employee_id');
+        return $this->belongsTo(\App\Models\User::class, 'employee_id');
     }
 
     public function status()

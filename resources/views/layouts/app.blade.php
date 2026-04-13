@@ -36,8 +36,9 @@
 
         {{-- MAIN CONTENT --}}
         <main class="p-6">
-    @yield('content')
-</main>
+            {{ $slot ?? '' }}
+            @yield('content')
+        </main>
     </div>
 
 </div>

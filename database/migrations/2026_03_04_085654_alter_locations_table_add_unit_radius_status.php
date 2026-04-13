@@ -7,17 +7,35 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('machine_fault_statuses', function (Blueprint $table) {
-            $table->id();
-            $table->string('name'); // contoh: Proses, Selesai, Ditolak
-            $table->string('key')->unique(); // proses, selesai, ditolak
-            $table->unsignedInteger('priority')->default(0);
-            $table->timestamps();
+        Schema::table('locations', function (Blueprint $table) {
+            if (!Schema::hasColumn('locations', 'radius')) {
+                $table->integer('radius')->nullable();
+            }
+
+            if (!Schema::hasColumn('locations', 'unit')) {
+                $table->string('unit')->nullable();
+            }
+
+            if (!Schema::hasColumn('locations', 'status')) {
+                $table->boolean('status')->default(true);
+            }
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('machine_fault_statuses');
+        Schema::table('locations', function (Blueprint $table) {
+            if (Schema::hasColumn('locations', 'radius')) {
+                $table->dropColumn('radius');
+            }
+
+            if (Schema::hasColumn('locations', 'unit')) {
+                $table->dropColumn('unit');
+            }
+
+            if (Schema::hasColumn('locations', 'status')) {
+                $table->dropColumn('status');
+            }
+        });
     }
 };

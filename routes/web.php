@@ -98,35 +98,13 @@ Route::middleware(['auth', 'role:superadmin'])
         Route::patch('ketidakhadiran/leave/{leave}', [PegawaiController::class, 'updateLeaveStatus'])->name('pegawai.leave.update');
         Route::patch('ketidakhadiran/fault/{fault}', [PegawaiController::class, 'updateFaultStatus'])->name('pegawai.fault.update');
 
-<<<<<<< Updated upstream
-        // PENGGUNA
-        Route::get('pengguna', [PegawaiController::class, 'pengguna'])->name('pengguna.index');
-        Route::get('pengguna/create', [PegawaiController::class, 'createPengguna'])->name('pengguna.create');
-        Route::post('pengguna', [PegawaiController::class, 'storePengguna'])->name('pengguna.store');
-        Route::delete('pengguna/{user}', [PegawaiController::class, 'destroyPengguna'])->name('pengguna.delete');
-=======
-        Route::delete('wajah/{face}', [PegawaiController::class, 'deleteWajah'])
-            ->name('pegawai.wajah.delete');
-
-        Route::patch('wajah/{face}/aktif', [PegawaiController::class, 'setAktif'])
-            ->name('pegawai.wajah.aktif');
-
         Route::post('pegawai-wajah/sync-all', [PegawaiController::class, 'syncAllWajah'])
             ->name('pegawai.wajah.sync-all');
 
-        Route::get('ketidakhadiran', [PegawaiController::class, 'ketidakhadiran'])
-            ->name('pegawai.ketidakhadiran');
-
-        Route::patch('ketidakhadiran/leave/{leave}', [PegawaiController::class, 'updateLeaveStatus'])
-            ->name('pegawai.leave.update');
-
-        Route::patch('ketidakhadiran/fault/{fault}', [PegawaiController::class, 'updateFaultStatus'])
-            ->name('pegawai.fault.update');
-
         /*
-        |--------------------------------------------------------------------------
+        --------------------------------------------------------------------------
         | PENGGUNA
-        |--------------------------------------------------------------------------
+        --------------------------------------------------------------------------
         */
 
         Route::get('pengguna', [PegawaiController::class, 'pengguna'])
@@ -174,12 +152,7 @@ Route::middleware(['auth', 'role:superadmin'])
         Route::delete('pengguna/{user}', [PegawaiController::class, 'destroyPengguna'])
             ->name('pengguna.delete');
 
-        /*
-        |--------------------------------------------------------------------------
-        | ABSENSI
-        |--------------------------------------------------------------------------
-        */
->>>>>>> Stashed changes
+        // ABSENSI
 
         // ABSENSI
         Route::resource('absensi/kategori-jadwal-kerja', WeeklyScheduleCategoryController::class)

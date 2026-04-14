@@ -98,11 +98,88 @@ Route::middleware(['auth', 'role:superadmin'])
         Route::patch('ketidakhadiran/leave/{leave}', [PegawaiController::class, 'updateLeaveStatus'])->name('pegawai.leave.update');
         Route::patch('ketidakhadiran/fault/{fault}', [PegawaiController::class, 'updateFaultStatus'])->name('pegawai.fault.update');
 
+<<<<<<< Updated upstream
         // PENGGUNA
         Route::get('pengguna', [PegawaiController::class, 'pengguna'])->name('pengguna.index');
         Route::get('pengguna/create', [PegawaiController::class, 'createPengguna'])->name('pengguna.create');
         Route::post('pengguna', [PegawaiController::class, 'storePengguna'])->name('pengguna.store');
         Route::delete('pengguna/{user}', [PegawaiController::class, 'destroyPengguna'])->name('pengguna.delete');
+=======
+        Route::delete('wajah/{face}', [PegawaiController::class, 'deleteWajah'])
+            ->name('pegawai.wajah.delete');
+
+        Route::patch('wajah/{face}/aktif', [PegawaiController::class, 'setAktif'])
+            ->name('pegawai.wajah.aktif');
+
+        Route::post('pegawai-wajah/sync-all', [PegawaiController::class, 'syncAllWajah'])
+            ->name('pegawai.wajah.sync-all');
+
+        Route::get('ketidakhadiran', [PegawaiController::class, 'ketidakhadiran'])
+            ->name('pegawai.ketidakhadiran');
+
+        Route::patch('ketidakhadiran/leave/{leave}', [PegawaiController::class, 'updateLeaveStatus'])
+            ->name('pegawai.leave.update');
+
+        Route::patch('ketidakhadiran/fault/{fault}', [PegawaiController::class, 'updateFaultStatus'])
+            ->name('pegawai.fault.update');
+
+        /*
+        |--------------------------------------------------------------------------
+        | PENGGUNA
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('pengguna', [PegawaiController::class, 'pengguna'])
+            ->name('pengguna.index');
+
+        Route::get('pengguna/create', [PegawaiController::class, 'createPengguna'])
+            ->name('pengguna.create');
+
+        Route::post('pengguna', [PegawaiController::class, 'storePengguna'])
+            ->name('pengguna.store');
+
+        Route::get('pengguna/export', [PegawaiController::class, 'exportPengguna'])
+            ->name('pengguna.export');
+
+        Route::post('pengguna/import', [PegawaiController::class, 'importPengguna'])
+            ->name('pengguna.import');
+
+        Route::patch('pengguna/bulk-status', [PegawaiController::class, 'bulkStatus'])
+            ->name('pengguna.bulk-status');
+
+        Route::get('pengguna/{user}/edit', [PegawaiController::class, 'editPengguna'])
+            ->name('pengguna.edit');
+
+        Route::put('pengguna/{user}', [PegawaiController::class, 'updatePengguna'])
+            ->name('pengguna.update');
+
+        Route::patch('pengguna/{user}/reset', [PegawaiController::class, 'resetPassword'])
+            ->name('pengguna.reset');
+
+        Route::patch('pengguna/{user}/status', [PegawaiController::class, 'toggleStatus'])
+            ->name('pengguna.status');
+
+        Route::get('pengguna/{user}/riwayat-login', [PegawaiController::class, 'riwayatLogin'])
+            ->name('pengguna.riwayat-login');
+
+        Route::get('pengguna/{user}/perangkat', [PegawaiController::class, 'perangkat'])
+            ->name('pengguna.perangkat');
+
+        Route::get('pengguna/{user}/lokasi-absen', [PegawaiController::class, 'lokasiAbsen'])
+            ->name('pengguna.lokasi-absen');
+
+        Route::get('pengguna/{user}/detail-akses', [PegawaiController::class, 'detailAkses'])
+            ->name('pengguna.detail-akses');
+
+        Route::delete('pengguna/{user}', [PegawaiController::class, 'destroyPengguna'])
+            ->name('pengguna.delete');
+
+        /*
+        |--------------------------------------------------------------------------
+        | ABSENSI
+        |--------------------------------------------------------------------------
+        */
+>>>>>>> Stashed changes
 
         // ABSENSI
         Route::resource('absensi/kategori-jadwal-kerja', WeeklyScheduleCategoryController::class)

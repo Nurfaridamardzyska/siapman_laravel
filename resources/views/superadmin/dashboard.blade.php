@@ -197,6 +197,11 @@
                         Riwayat Presensi
                     </a>
 
+                    <a href="{{ route('superadmin.absensi.jadwal-kerja.index') }}"
+                       class="rounded-xl bg-slate-50 p-4 text-sm font-medium text-slate-700 transition hover:bg-slate-100">
+                        Pengaturan Jam Absensi
+                    </a>
+
                     <a href="{{ route('superadmin.hari-libur.index') }}"
                        class="rounded-xl bg-slate-50 p-4 text-sm font-medium text-slate-700 transition hover:bg-slate-100">
                         Hari Libur

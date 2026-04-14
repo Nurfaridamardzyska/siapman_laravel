@@ -1,94 +1,215 @@
 <div class="w-64 bg-gradient-to-b from-blue-600 to-blue-700 text-white min-h-screen p-5">
 
-    {{-- HEADER --}}
     <div class="mb-8">
-        <h2 class="text-xl font-bold tracking-wide">SIAPMAN</h2>
-        <p class="text-xs opacity-80">Sistem Presensi ASN</p>
+        <h2 class="text-xl font-bold tracking-wide">
+            SIAPMAN
+        </h2>
+        <p class="text-xs opacity-80">
+            Sistem Presensi ASN
+        </p>
     </div>
 
-    @php
-        $user = auth()->user();
-    @endphp
-
-    {{-- MENU --}}
     <nav class="space-y-2 text-sm">
 
-        {{-- DASHBOARD (DINAMIS SESUAI ROLE) --}}
-        <a href="{{ $user->role === 'admin' ? route('admin.dashboard') : route('superadmin.dashboard') }}"
-           class="block px-4 py-2 rounded-lg transition
-           {{ request()->routeIs('admin.dashboard') || request()->routeIs('superadmin.dashboard') ? 'bg-white/20 font-semibold' : 'hover:bg-white/20' }}">
+        <a href="{{ route('dashboard') }}"
+           class="block px-4 py-2 rounded-lg hover:bg-white/20 transition">
             Dashboard
         </a>
 
-        {{-- ================= ADMIN ================= --}}
-        @if($user->role === 'admin')
+        @if(auth()->user()->role === 'superadmin')
 
-            <a href="{{ route('admin.presensi') }}"
-               class="block px-4 py-2 rounded-lg transition
-               {{ request()->routeIs('admin.presensi') ? 'bg-white/20 font-semibold' : 'hover:bg-white/20' }}">
-                Data Presensi Pegawai
+            <a href="{{ route('superadmin.dashboard') }}"
+               class="block px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                Dashboard
             </a>
 
-            <a href="{{ route('admin.pegawai') }}"
-               class="block px-4 py-2 rounded-lg transition
-               {{ request()->routeIs('admin.pegawai') ? 'bg-white/20 font-semibold' : 'hover:bg-white/20' }}">
-                Data Pegawai
+            <a href="{{ route('superadmin.pengguna.index') }}"
+               class="block px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                Manajemen Admin
             </a>
 
-            <a href="{{ route('admin.monitoring') }}"
-               class="block px-4 py-2 rounded-lg transition
-               {{ request()->routeIs('admin.monitoring') ? 'bg-white/20 font-semibold' : 'hover:bg-white/20' }}">
-                Monitoring Presensi
-            </a>
+            {{-- DROPDOWN KEPEGAWAIAN --}}
+            <div x-data="{ openKepegawaian: false }" class="mt-2">
+
+                <button @click="openKepegawaian = !openKepegawaian"
+                        class="w-full flex justify-between items-center px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                    <span>Kepegawaian</span>
+                    <svg :class="{'rotate-180': openKepegawaian}"
+                         class="w-4 h-4 transform transition-transform duration-300"
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+
+                <div x-show="openKepegawaian"
+                     x-transition
+                     class="ml-4 mt-1 space-y-1">
+
+                    <a href="{{ route('superadmin.pegawai.index') }}"
+                       class="block px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                        Data Pegawai
+                    </a>
+
+                    <a href="{{ route('superadmin.pegawai.wajah') }}"
+                       class="block px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                        Wajah Pegawai
+                    </a>
+
+                    <a href="{{ route('superadmin.pegawai.ketidakhadiran') }}"
+                       class="block px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                        Dokumen Ketidakhadiran
+                    </a>
+
+                </div>
+            </div>
+
+            {{-- DROPDOWN ABSENSI --}}
+            <div x-data="{ openAbsensi: false }" class="mt-2">
+
+                <button @click="openAbsensi = !openAbsensi"
+                        class="w-full flex justify-between items-center px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                    <span>Absensi</span>
+                    <svg :class="{'rotate-180': openAbsensi}"
+                         class="w-4 h-4 transform transition-transform duration-300"
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+
+                <div x-show="openAbsensi"
+                     x-transition
+                     class="ml-4 mt-1 space-y-1">
+
+                    <a href="{{ route('superadmin.absensi.jadwal-kerja.index') }}"
+                       class="block px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                        Pengaturan Jam Absensi
+                    </a>
+
+                    <a href="{{ route('superadmin.absensi.lokasi-absen-instansi.index') }}"
+                       class="block px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                        Lokasi Absen Instansi
+                    </a>
+
+                    <a href="{{ route('superadmin.absensi.lokasi-absen.index') }}"
+                       class="block px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                        Lokasi Absen
+                    </a>
+
+                    <a href="{{ route('superadmin.absensi.lokasi-absen-pegawai.index') }}"
+                       class="block px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                        Lokasi Absen Pegawai
+                    </a>
+
+                    <a href="{{ route('superadmin.absensi.perangkat-pengguna.index') }}"
+                       class="block px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                        Perangkat Pengguna
+                    </a>
+
+                    <a href="{{ route('superadmin.absensi.mesin.index') }}"
+                       class="block px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                        Mesin
+                    </a>
+
+                    <a href="{{ route('superadmin.absensi.lapor-kendala-absensi.index') }}"
+                       class="block px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                        Lapor Kendala Absensi
+                    </a>
+
+                </div>
+            </div>
+
+            {{-- DROPDOWN LAPORAN --}}
+            <div x-data="{ openLaporan: false }" class="mt-2">
+
+                <button @click="openLaporan = !openLaporan"
+                        class="w-full flex justify-between items-center px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                    <span>Laporan</span>
+                    <svg :class="{'rotate-180': openLaporan}"
+                         class="w-4 h-4 transform transition-transform duration-300"
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+
+                <div x-show="openLaporan"
+                     x-transition
+                     class="ml-4 mt-1 space-y-1">
+
+                    <a href="{{ route('superadmin.laporan.presensi-harian') }}"
+                       class="block px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                        Presensi Harian
+                    </a>
+
+                    <a href="{{ route('superadmin.laporan.presensi-bulanan') }}"
+                       class="block px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                        Presensi Bulanan
+                    </a>
+
+                </div>
+            </div>
+
+            {{-- DROPDOWN MASTER --}}
+            <div x-data="{ openMaster: false }" class="mt-2">
+
+                <button @click="openMaster = !openMaster"
+                        class="w-full flex justify-between items-center px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                    <span>Master</span>
+                    <svg :class="{'rotate-180': openMaster}"
+                         class="w-4 h-4 transform transition-transform duration-300"
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+
+                <div x-show="openMaster"
+                     x-transition
+                     class="ml-4 mt-1 space-y-1">
+
+                    <a href="{{ route('superadmin.master.instansi.index') }}"
+                       class="block px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                        Instansi
+                    </a>
+
+                    <a href="{{ route('superadmin.master.tipe-dokumen.index') }}"
+                       class="block px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                        Tipe Dokumen
+                    </a>
+
+                    <a href="{{ route('superadmin.tipe-pegawai.index') }}"
+                       class="block px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                        Tipe Pegawai
+                    </a>
+
+                    <a href="{{ route('superadmin.hari-libur.index') }}"
+                       class="block px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                        Hari Libur
+                    </a>
+
+                </div>
+            </div>
 
         @endif
 
-
-        {{-- ================= SUPERADMIN ================= --}}
-        @if($user->role === 'superadmin')
-
-            {{-- KONFIGURASI --}}
-            <a href="{{ route('superadmin.tipe-pegawai.index') }}"
-               class="block px-4 py-2 rounded-lg hover:bg-white/20">
-                Tipe Pegawai
+        @if(auth()->user()->role === 'admin')
+            <a href="#"
+               class="block px-4 py-2 rounded-lg hover:bg-white/20 transition">
+                Monitoring ASN
             </a>
-
-            <a href="{{ route('superadmin.hari-libur.index') }}"
-               class="block px-4 py-2 rounded-lg hover:bg-white/20">
-                Hari Libur
-            </a>
-
-            {{-- MASTER --}}
-            <a href="{{ route('superadmin.master.instansi.index') }}"
-               class="block px-4 py-2 rounded-lg hover:bg-white/20">
-                Instansi
-            </a>
-
-            {{-- ABSENSI --}}
-            <a href="{{ route('superadmin.absensi.jadwal-kerja.index') }}"
-               class="block px-4 py-2 rounded-lg hover:bg-white/20">
-                Jadwal Kerja
-            </a>
-
-            <a href="{{ route('superadmin.absensi.riwayat-presensi.index') }}"
-               class="block px-4 py-2 rounded-lg hover:bg-white/20">
-                Riwayat Presensi
-            </a>
-
         @endif
 
-
-        {{-- USER INFO --}}
         <hr class="border-white/30 my-4">
 
         <div class="text-xs opacity-70">
-            {{ $user->name }}
+            {{ auth()->user()->name }}
         </div>
 
-        {{-- LOGOUT --}}
         <form method="POST" action="{{ route('logout') }}">
             @csrf
-            <button type="submit" class="mt-2 text-xs text-red-200 hover:text-white">
+            <button class="mt-2 text-xs text-red-200 hover:text-white">
                 Logout
             </button>
         </form>

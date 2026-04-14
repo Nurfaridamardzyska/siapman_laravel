@@ -2,13 +2,25 @@ from flask import Flask, Response, jsonify, request
 import cv2
 import time
 import threading
+import face_recognition
+import os
+import pickle
+import numpy as np
 
 app = Flask(__name__)
 
+# ================= SETTINGS =================
+KNOWN_FACES_DIR = os.path.join(os.path.dirname(__file__), "known_faces")
+if not os.path.exists(KNOWN_FACES_DIR):
+    os.makedirs(KNOWN_FACES_DIR)
+
+VALIDATION_SECONDS = 10.0
+CAMERA_INDEX = 0
+
+# ================= GLOBAL STATE =================
 _state_lock = threading.Lock()
 _camera = None
 _cascade = None
-
 _validation_running = False
 _first_detected_at = None
 _last_seen_at = None
@@ -16,9 +28,29 @@ _status_text = "Idle"
 _valid = False
 _elapsed_sec = 0.0
 
-VALIDATION_SECONDS = 10.0
-CAMERA_INDEX = 0
+_known_faces = {}
 
+# ================= LOAD FACES =================
+def load_known_faces():
+    global _known_faces
+    _known_faces = {}
+    for filename in os.listdir(KNOWN_FACES_DIR):
+        if filename.endswith(".pkl"):
+            user_id = filename.replace(".pkl", "")
+            try:
+                with open(os.path.join(KNOWN_FACES_DIR, filename), "rb") as f:
+                    _known_faces[user_id] = pickle.load(f)
+            except Exception as e:
+                print(f"Error loading {filename}: {e}")
+
+load_known_faces()
+
+# ================= CAMERA =================
+def _get_camera():
+    global _camera
+    if _camera is None or not _camera.isOpened():
+        _camera = cv2.VideoCapture(CAMERA_INDEX)
+    return _camera
 
 def _get_cascade():
     global _cascade
@@ -28,14 +60,7 @@ def _get_cascade():
         )
     return _cascade
 
-
-def _get_camera():
-    global _camera
-    if _camera is None or not _camera.isOpened():
-        _camera = cv2.VideoCapture(CAMERA_INDEX)
-    return _camera
-
-
+# ================= VALIDATION =================
 def _reset_validation_locked():
     global _validation_running, _first_detected_at, _last_seen_at, _status_text, _valid, _elapsed_sec
     _validation_running = False
@@ -44,7 +69,6 @@ def _reset_validation_locked():
     _status_text = "Idle"
     _valid = False
     _elapsed_sec = 0.0
-
 
 def _update_validation_locked(face_detected: bool, now: float):
     global _validation_running, _first_detected_at, _last_seen_at, _status_text, _valid, _elapsed_sec
@@ -56,77 +80,87 @@ def _update_validation_locked(face_detected: bool, now: float):
     if _valid:
         _status_text = "Wajah Valid"
         _elapsed_sec = VALIDATION_SECONDS
-        _last_seen_at = now
         return
 
     if not _validation_running:
         _validation_running = True
         _first_detected_at = now
-        _last_seen_at = now
         _status_text = "Detecting..."
-        _elapsed_sec = 0.0
         return
 
-    _last_seen_at = now
-    _elapsed_sec = float(now - _first_detected_at) if _first_detected_at else 0.0
+    _elapsed_sec = float(now - _first_detected_at)
     _status_text = "Hold still..."
 
     if _elapsed_sec >= VALIDATION_SECONDS:
         _valid = True
         _status_text = "Wajah Valid"
-        _elapsed_sec = VALIDATION_SECONDS
 
-
+# ================= ROUTES =================
 @app.route('/')
 def home():
     return jsonify({
-        "message": "Face service aktif"
+        "message": "Face service aktif",
+        "registered_users": list(_known_faces.keys())
     })
 
+@app.route('/register', methods=['POST'])
+def register():
+    try:
+        file = request.files['face_image']
+        user_id = request.form.get('user_id')
 
-@app.route('/status', methods=['GET'])
-def status():
-    with _state_lock:
+        image = face_recognition.load_image_file(file)
+        encoding = face_recognition.face_encodings(image)[0]
+
+        with open(os.path.join(KNOWN_FACES_DIR, f"{user_id}.pkl"), "wb") as f:
+            pickle.dump(encoding, f)
+
+        _known_faces[user_id] = encoding
+
+        return jsonify({"message": "wajah berhasil didaftarkan"})
+
+    except Exception as e:
+        return jsonify({"message": str(e)}), 500
+
+@app.route('/verify', methods=['POST'])
+def verify():
+    try:
+        file = request.files['face_image']
+        user_id = request.form.get('user_id')
+
+        image = face_recognition.load_image_file(file)
+        unknown_encoding = face_recognition.face_encodings(image)[0]
+
+        known_encoding = _known_faces[user_id]
+        distance = face_recognition.face_distance([known_encoding], unknown_encoding)[0]
+
         return jsonify({
-            "valid": bool(_valid),
-            "status": str(_status_text),
-            "elapsed": float(_elapsed_sec),
-            "required": float(VALIDATION_SECONDS),
-            "validation_running": bool(_validation_running),
-        }), 200
+            "matched": bool(distance < 0.5),
+            "distance": float(distance)
+        })
 
+    except Exception as e:
+        return jsonify({"message": str(e)}), 500
 
+@app.route('/status')
+def status():
+    return jsonify({
+        "valid": _valid,
+        "status": _status_text,
+        "elapsed": _elapsed_sec
+    })
+
+@app.route('/reset', methods=['POST'])
+def reset():
+    with _state_lock:
+        _reset_validation_locked()
+    return jsonify({"message": "reset ok"})
+
+# ================= STREAM =================
 def _annotate_frame(frame, faces):
     for (x, y, w, h) in faces:
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-
-    with _state_lock:
-        text = _status_text
-        elapsed = _elapsed_sec
-        valid = _valid
-
-    if valid:
-        overlay = "Wajah Valid"
-        color = (0, 200, 0)
-    elif text in ("Detecting...", "Hold still..."):
-        overlay = f"{text} {elapsed:.1f}/{VALIDATION_SECONDS:.0f}s"
-        color = (0, 255, 255)
-    else:
-        overlay = "Idle"
-        color = (255, 255, 255)
-
-    cv2.putText(
-        frame,
-        overlay,
-        (10, 30),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.9,
-        color,
-        2,
-        cv2.LINE_AA,
-    )
+        cv2.rectangle(frame, (x, y), (x+w, y+h), (0,255,0), 2)
     return frame
-
 
 def _stream_frames():
     cap = _get_camera()
@@ -135,44 +169,24 @@ def _stream_frames():
     while True:
         ok, frame = cap.read()
         if not ok:
-            time.sleep(0.05)
             continue
 
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        faces = cascade.detectMultiScale(
-            gray,
-            scaleFactor=1.1,
-            minNeighbors=5,
-            minSize=(60, 60),
-        )
+        faces = cascade.detectMultiScale(gray)
 
         now = time.time()
         with _state_lock:
-            _update_validation_locked(face_detected=(len(faces) > 0), now=now)
+            _update_validation_locked(len(faces) > 0, now)
 
         frame = _annotate_frame(frame, faces)
+        _, jpeg = cv2.imencode('.jpg', frame)
 
-        ret, jpeg = cv2.imencode('.jpg', frame)
-        if not ret:
-            continue
+        yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n')
 
-        yield (
-            b"--frame\r\n"
-            b"Content-Type: image/jpeg\r\n\r\n" + jpeg.tobytes() + b"\r\n"
-        )
-
-
-@app.route('/stream', methods=['GET'])
+@app.route('/stream')
 def stream():
     return Response(_stream_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-
-@app.route('/reset', methods=['POST'])
-def reset():
-    with _state_lock:
-        _reset_validation_locked()
-    return jsonify({"message": "reset ok"}), 200
-
-
+# ================= MAIN =================
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001, debug=False, threaded=True)
+    app.run(host='0.0.0.0', port=5001)

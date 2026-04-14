@@ -13,6 +13,8 @@ use App\Models\UserDevice;
 use App\Models\UserLog;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PegawaiController extends Controller
@@ -129,7 +131,35 @@ class PegawaiController extends Controller
             'is_active' => true,
         ]);
 
-        return back()->with('success', 'Wajah berhasil ditambahkan');
+        // Sync with Flask face service
+        $user = User::where('nip', $pegawai->nip)->first();
+        if ($user) {
+            try {
+                $imageData = file_get_contents($request->file('face_image')->getRealPath());
+                $response = Http::attach(
+                    'face_image',
+                    $imageData,
+                    $request->file('face_image')->getClientOriginalName()
+                )->post('http://127.0.0.1:5001/register', [
+                    'user_id' => $user->id,
+                ]);
+
+                if ($response->successful()) {
+                    Log::info('Face service sync OK for User ID: ' . $user->id);
+                } else {
+                    Log::error('Face service sync failed: ' . $response->body());
+                    return back()->with('warning', 'Wajah tersimpan di DB, tapi gagal sync ke face service: ' . ($response->json()['message'] ?? 'Unknown error'));
+                }
+            } catch (\Exception $e) {
+                Log::error('Face service connection error: ' . $e->getMessage());
+                return back()->with('warning', 'Wajah tersimpan di DB, tapi face service tidak aktif. Jalankan face service lalu sync ulang.');
+            }
+        } else {
+            Log::warning('No user found with NIP: ' . $pegawai->nip . ' — cannot sync to face service');
+            return back()->with('warning', 'Wajah tersimpan, tapi tidak ada user dengan NIP ' . $pegawai->nip . ' untuk sync ke face service.');
+        }
+
+        return back()->with('success', 'Wajah berhasil ditambahkan dan disinkronkan ke face service');
     }
 
     public function deleteWajah(EmployeeFace $face)
@@ -151,6 +181,62 @@ class PegawaiController extends Controller
         $face->update(['is_active' => true]);
 
         return back()->with('success', 'Wajah berhasil diaktifkan');
+    }
+
+    /**
+     * Sync all active EmployeeFace records to the Flask face service.
+     * Re-registers every face encoding so known_faces/*.pkl is up to date.
+     */
+    public function syncAllWajah()
+    {
+        $faces = EmployeeFace::where('is_active', true)->with('employee')->get();
+        $synced = 0;
+        $failed = 0;
+        $skipped = 0;
+
+        foreach ($faces as $face) {
+            $employee = $face->employee;
+            if (!$employee) {
+                $skipped++;
+                continue;
+            }
+
+            $user = User::where('nip', $employee->nip)->first();
+            if (!$user) {
+                $skipped++;
+                Log::warning("syncAllWajah: No user with NIP {$employee->nip}");
+                continue;
+            }
+
+            $fullPath = Storage::disk('public')->path($face->image_path);
+            if (!file_exists($fullPath)) {
+                $failed++;
+                Log::error("syncAllWajah: File not found — {$face->image_path}");
+                continue;
+            }
+
+            try {
+                $response = Http::attach(
+                    'face_image',
+                    file_get_contents($fullPath),
+                    basename($face->image_path)
+                )->post('http://127.0.0.1:5001/register', [
+                    'user_id' => $user->id,
+                ]);
+
+                if ($response->successful()) {
+                    $synced++;
+                } else {
+                    $failed++;
+                    Log::error("syncAllWajah: Flask error for user {$user->id} — " . $response->body());
+                }
+            } catch (\Exception $e) {
+                $failed++;
+                Log::error("syncAllWajah: Connection error — " . $e->getMessage());
+            }
+        }
+
+        return back()->with('success', "Sync selesai: {$synced} berhasil, {$failed} gagal, {$skipped} dilewati.");
     }
 
     // ======================
@@ -245,6 +331,7 @@ class PegawaiController extends Controller
             'nip' => 'nullable|string|max:50',
             'unit_kerja' => 'nullable|string|max:150',
             'status' => 'nullable|in:Aktif,Nonaktif',
+            'face_image' => 'nullable|string', // Base64 string
         ]);
 
         $user = User::create([
@@ -257,6 +344,72 @@ class PegawaiController extends Controller
             'unit_kerja' => $validated['unit_kerja'] ?? null,
             'status' => $validated['status'] ?? 'Aktif',
         ]);
+
+        // Handing Face Image
+        $nipFallback = $validated['nip'] ?? $user->id;
+        if ($request->filled('face_image')) {
+            try {
+                $base64Image = $request->face_image;
+                if (preg_match('/^data:image\/(\w+);base64,/', $base64Image, $type)) {
+                    $base64Image = substr($base64Image, strpos($base64Image, ',') + 1);
+                    $type = strtolower($type[1]); // jpg, png, etc
+
+                    if (!in_array($type, ['jpg', 'jpeg', 'png'])) {
+                        throw new \Exception('Invalid image type');
+                    }
+
+                    $imageData = base64_decode($base64Image);
+                    if ($imageData === false) {
+                        throw new \Exception('base64_decode failed');
+                    }
+                } else {
+                    throw new \Exception('did not match data URI with image data');
+                }
+
+                $fileName = 'faces/' . $nipFallback . '_' . time() . '.' . $type;
+                Storage::disk('public')->put($fileName, $imageData);
+
+                // Find or create Employee
+                $employee = Employee::firstOrCreate(
+                    ['nip' => $nipFallback],
+                    ['name' => $validated['name'], 'status' => 'Aktif']
+                );
+
+                // Deactivate old faces
+                EmployeeFace::where('employee_id', $employee->id)->update(['is_active' => false]);
+
+                // Store Face
+                EmployeeFace::create([
+                    'employee_id' => $employee->id,
+                    'image_path' => $fileName,
+                    'is_active' => true,
+                ]);
+
+                // SYNC WITH FACE SERVICE (PYTHON)
+                try {
+                    $response = Http::attach(
+                        'face_image',
+                        $imageData,
+                        basename($fileName)
+                    )->post('http://127.0.0.1:5001/register', [
+                        'user_id' => $user->id,
+                    ]);
+
+                    if ($response->successful()) {
+                        Log::info('Face service sync successful for User ID: ' . $user->id);
+                    } else {
+                        Log::error('Face service sync failed: ' . $response->body());
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Face service connection error: ' . $e->getMessage());
+                }
+
+                Log::info('Face image saved successfully for NIP: ' . $nipFallback);
+
+            } catch (\Exception $e) {
+                Log::error('Error saving face image in storePengguna: ' . $e->getMessage());
+            }
+        }
 
         if (class_exists(UserLog::class)) {
             UserLog::create([
@@ -290,6 +443,7 @@ class PegawaiController extends Controller
             'unit_kerja' => 'nullable|string|max:150',
             'status' => 'nullable|in:Aktif,Nonaktif',
             'password' => 'nullable|string|min:6|confirmed',
+            'face_image' => 'nullable|string', // Base64 string
         ]);
 
         $data = [
@@ -307,6 +461,79 @@ class PegawaiController extends Controller
         }
 
         $user->update($data);
+
+        // Handing Face Image
+        $nipFallback = $validated['nip'] ?? $user->nip ?? $user->id;
+        
+        Log::info('Checking face_image in updatePengguna', [
+            'has_face' => $request->filled('face_image'),
+            'nip' => $nipFallback ?? 'null',
+            'user_id' => $user->id
+        ]);
+
+        if ($request->filled('face_image')) {
+            try {
+                $base64Image = $request->face_image;
+                if (preg_match('/^data:image\/(\w+);base64,/', $base64Image, $type)) {
+                    $base64Image = substr($base64Image, strpos($base64Image, ',') + 1);
+                    $type = strtolower($type[1]);
+
+                    if (!in_array($type, ['jpg', 'jpeg', 'png'])) {
+                        throw new \Exception('Invalid image type: ' . $type);
+                    }
+
+                    $imageData = base64_decode($base64Image);
+                    if ($imageData === false) {
+                        throw new \Exception('base64_decode failed');
+                    }
+                } else {
+                    throw new \Exception('did not match data URI with image data');
+                }
+
+                $fileName = 'faces/' . $nipFallback . '_' . time() . '.' . $type;
+                Storage::disk('public')->put($fileName, $imageData);
+
+                // Find or create Employee
+                $employee = Employee::firstOrCreate(
+                    ['nip' => $nipFallback],
+                    ['name' => $validated['name'], 'status' => 'Aktif']
+                );
+
+                // Deactivate old faces
+                EmployeeFace::where('employee_id', $employee->id)->update(['is_active' => false]);
+
+                // Store Face
+                EmployeeFace::create([
+                    'employee_id' => $employee->id,
+                    'image_path' => $fileName,
+                    'is_active' => true,
+                ]);
+
+                // SYNC WITH FACE SERVICE (PYTHON)
+                try {
+                    $response = Http::attach(
+                        'face_image',
+                        $imageData,
+                        basename($fileName)
+                    )->post('http://127.0.0.1:5001/register', [
+                        'user_id' => $user->id,
+                    ]);
+
+                    if ($response->successful()) {
+                        Log::info('Face service sync successful for User ID: ' . $user->id);
+                    } else {
+                        Log::error('Face service sync failed: ' . $response->body());
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Face service connection error: ' . $e->getMessage());
+                }
+
+                Log::info('Face image updated successfully for NIP/ID: ' . $nipFallback);
+
+            } catch (\Exception $e) {
+                Log::error('Error saving face image in updatePengguna: ' . $e->getMessage());
+            }
+        }
 
         if (class_exists(UserLog::class)) {
             UserLog::create([
@@ -519,9 +746,9 @@ class PegawaiController extends Controller
                 'name' => trim($data['name']),
                 'email' => trim($data['email']),
                 'password' => Hash::make($data['password'] ?? 'password123'),
-                'nip' => $data['nip'] ?? null,
+                'nip' => $data['nip'] ?? $data['nrp'] ?? null,
                 'role' => trim($data['role']),
-                'unit_kerja' => $data['unit_kerja'] ?? null,
+                'unit_kerja' => $data['unit_kerja'] ?? $data['opd'] ?? null,
                 'status' => $data['status'] ?? 'Aktif',
             ]);
 

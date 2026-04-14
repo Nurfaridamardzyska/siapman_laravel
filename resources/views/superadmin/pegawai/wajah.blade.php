@@ -7,6 +7,22 @@
         Manajemen Wajah Pegawai
     </h2>
 
+    @if(session('success'))
+        <div class="bg-green-100 text-green-800 p-3 rounded mb-4 text-sm">{{ session('success') }}</div>
+    @endif
+    @if(session('warning'))
+        <div class="bg-yellow-100 text-yellow-800 p-3 rounded mb-4 text-sm">{{ session('warning') }}</div>
+    @endif
+
+    <form method="POST" action="{{ route('superadmin.pegawai.wajah.sync-all') }}" class="mb-4">
+        @csrf
+        <button type="submit"
+                class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 text-sm rounded"
+                onclick="return confirm('Sync semua wajah aktif ke face service?')">
+            🔄 Sync Semua Wajah ke Face Service
+        </button>
+    </form>
+
     <table class="w-full border text-sm">
         <thead class="bg-gray-100">
             <tr>

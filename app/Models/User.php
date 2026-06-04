@@ -19,7 +19,8 @@ class User extends Authenticatable
         'nip',
         'role',
         'unit_kerja',
-        'status'
+        'status',
+        'department_id'
     ];
 
     protected $hidden = [
@@ -45,5 +46,20 @@ class User extends Authenticatable
     public function isUser(): bool
     {
         return $this->role === 'user';
+    }
+
+    public function devices()
+    {
+        return $this->hasMany(UserDevice::class);
+    }
+
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
+    }
+
+    public function isAdminOPD(): bool
+    {
+        return $this->role === 'admin' && !empty($this->department_id);
     }
 }

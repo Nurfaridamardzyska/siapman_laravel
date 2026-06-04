@@ -4,8 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+use App\Models\Scopes\DepartmentScope;
+
 class FaultReport extends Model
 {
+    protected static function booted()
+    {
+        static::addGlobalScope(new DepartmentScope);
+    }
+
     protected $fillable = [
         'employee_id',
         'title',

@@ -45,7 +45,9 @@
                             <th class="px-6 py-4 font-semibold whitespace-nowrap">Profil Pegawai</th>
                             <th class="px-6 py-4 font-semibold whitespace-nowrap">Posisi & Jabatan</th>
                             <th class="px-6 py-4 font-semibold whitespace-nowrap">Kontak</th>
+                            <th class="px-6 py-4 font-semibold whitespace-nowrap">Kadar Kepatuhan</th>
                             <th class="px-6 py-4 font-semibold whitespace-nowrap text-center">Status</th>
+                            <th class="px-6 py-4 font-semibold whitespace-nowrap text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -95,16 +97,27 @@
                                         <span class="truncate max-w-[150px] font-medium" title="{{ $user->email }}">{{ $user->email ?? '-' }}</span>
                                     </div>
                                 </td>
-                                
+
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex flex-col gap-1">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Kepatuhan</span>
+                                            <span class="text-xs font-bold {{ $user->compliance_score > 80 ? 'text-emerald-600' : ($user->compliance_score > 50 ? 'text-amber-600' : 'text-rose-600') }}">
+                                                {{ $user->compliance_score }}%
+                                            </span>
+                                        </div>
+                                        <div class="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                            <div class="h-full {{ $user->compliance_score > 80 ? 'bg-emerald-500' : ($user->compliance_score > 50 ? 'bg-amber-500' : 'bg-rose-500') }}" style="width: {{ $user->compliance_score }}%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
                                     @if($user->status === 'aktif' || strtolower($user->status) === 'active')
-                                        <span class="px-3 py-1 text-xs font-semibold rounded-md ring-1 bg-emerald-50 text-emerald-600 ring-emerald-500/20">
-                                            Aktif
-                                        </span>
-                                    @else
-                                        <span class="px-3 py-1 text-xs font-semibold rounded-md ring-1 bg-slate-50 text-slate-600 ring-slate-500/20">
-                                            Tidak Aktif
-                                        </span>
+                                    <a href="{{ route('admin.pegawai.show', $user->id) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 transition-all">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                        Detail
+                                    </a>
                                     @endif
                                 </td>
                             </tr>

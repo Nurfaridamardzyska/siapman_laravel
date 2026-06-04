@@ -37,7 +37,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="/Users/elrya/laravel_projects/siapman_api/face_service/venv"
+VIRTUAL_ENV="/Users/elrya/fullstacksiapman/laravel_projects/siapman_api/face_service/venv"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"

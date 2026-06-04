@@ -3,23 +3,23 @@
 @section('content')
 <div class="px-6 py-6">
     <div class="mb-6">
-        <h1 class="text-2xl font-bold text-slate-800">Tambah Hari Libur</h1>
-        <p class="mt-1 text-sm text-slate-500">Isi data hari libur dengan lengkap.</p>
+        <h1 class="text-2xl font-bold text-slate-800">Tambah Instansi / OPD</h1>
+        <p class="mt-1 text-sm text-slate-500">Isi data instansi atau OPD dengan lengkap.</p>
     </div>
 
     <div class="max-w-4xl">
         <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div class="border-b border-slate-200 px-6 py-4">
-                <h2 class="text-lg font-semibold text-slate-700">Form Hari Libur</h2>
+                <h2 class="text-lg font-semibold text-slate-700">Form Instansi / OPD</h2>
             </div>
 
-            <form action="{{ route('superadmin.hari-libur.store') }}" method="POST" class="p-6">
+            <form action="{{ route('superadmin.master.instansi.store') }}" method="POST" class="p-6">
                 @csrf
 
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
                         <label class="mb-2 block text-sm font-medium text-slate-700">Nama <span class="text-red-500">*</span></label>
-                        <input type="text" name="name" value="{{ old('name') }}"
+                        <input type="text" name="name" value="{{ old('name') }}" required
                                class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
                         @error('name')
                             <p class="mt-2 text-sm text-red-500">{{ $message }}</p>
@@ -27,22 +27,34 @@
                     </div>
 
                     <div>
-                        <label class="mb-2 block text-sm font-medium text-slate-700">Tanggal <span class="text-red-500">*</span></label>
-                        <input type="date" name="date" value="{{ old('date') }}"
+                        <label class="mb-2 block text-sm font-medium text-slate-700">Kode OPD</label>
+                        <input type="text" name="kode_opd" value="{{ old('kode_opd') }}"
                                class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
-                        @error('date')
+                        @error('kode_opd')
                             <p class="mt-2 text-sm text-red-500">{{ $message }}</p>
                         @enderror
                     </div>
 
                     <div>
-                        <label class="mb-2 block text-sm font-medium text-slate-700">Jenis <span class="text-red-500">*</span></label>
-                        <select name="type"
-                                class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
-                            <option value="">- Pilih Jenis -</option>
-                            <option value="Nasional" {{ old('type') == 'Nasional' ? 'selected' : '' }}>Nasional</option>
-                            <option value="Cuti Bersama" {{ old('type') == 'Cuti Bersama' ? 'selected' : '' }}>Cuti Bersama</option>
-                            <option value="Hari Besar Agama" {{ old('type') == 'Hari Besar Agama' ? 'selected' : '' }}>Hari Besar Agama</option>
+                        <label class="mb-2 block text-sm font-medium text-slate-700">Singkatan</label>
+                        <input type="text" name="short_name" value="{{ old('short_name') }}"
+                               class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                        @error('short_name')
+                            <p class="mt-2 text-sm text-red-500">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-slate-700">Tipe</label>
+                        <select name="type" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                            <option value="">- Pilih Tipe Instansi -</option>
+                            <option value="Dinas" {{ old('type') == 'Dinas' ? 'selected' : '' }}>Dinas</option>
+                            <option value="Badan" {{ old('type') == 'Badan' ? 'selected' : '' }}>Badan</option>
+                            <option value="Kecamatan" {{ old('type') == 'Kecamatan' ? 'selected' : '' }}>Kecamatan</option>
+                            <option value="Puskesmas" {{ old('type') == 'Puskesmas' ? 'selected' : '' }}>Puskesmas</option>
+                            <option value="UPTD" {{ old('type') == 'UPTD' ? 'selected' : '' }}>UPTD</option>
+                            <option value="Cabang" {{ old('type') == 'Cabang' ? 'selected' : '' }}>Cabang / Cabdindik</option>
+                            <option value="Sekolah" {{ old('type') == 'Sekolah' ? 'selected' : '' }}>Sekolah</option>
                             <option value="Lainnya" {{ old('type') == 'Lainnya' ? 'selected' : '' }}>Lainnya</option>
                         </select>
                         @error('type')
@@ -51,50 +63,28 @@
                     </div>
 
                     <div>
-                        <label class="mb-2 block text-sm font-medium text-slate-700">Tahun</label>
-                        <input type="number" name="year" value="{{ old('year') }}"
+                        <label class="mb-2 block text-sm font-medium text-slate-700">Email</label>
+                        <input type="email" name="email" value="{{ old('email') }}"
                                class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
-                        @error('year')
+                        @error('email')
                             <p class="mt-2 text-sm text-red-500">{{ $message }}</p>
                         @enderror
                     </div>
 
                     <div>
-                        <label class="mb-2 block text-sm font-medium text-slate-700">Instansi ID</label>
-                        <input type="number" name="company_id" value="{{ old('company_id', 0) }}"
+                        <label class="mb-2 block text-sm font-medium text-slate-700">No Telepon</label>
+                        <input type="text" name="phone" value="{{ old('phone') }}"
                                class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
-                        @error('company_id')
+                        @error('phone')
                             <p class="mt-2 text-sm text-red-500">{{ $message }}</p>
                         @enderror
                     </div>
 
-                    <div class="flex flex-col justify-end gap-4">
-                        <label class="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                            <input type="checkbox" name="is_nasional" value="1"
-                                   {{ old('is_nasional', 1) ? 'checked' : '' }}
-                                   class="h-5 w-5 rounded border-slate-300 text-green-600 focus:ring-green-500">
-                            <div>
-                                <p class="text-sm font-medium text-slate-700">Libur Nasional</p>
-                                <p class="text-xs text-slate-500">Centang jika berlaku nasional</p>
-                            </div>
-                        </label>
-
-                        <label class="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                            <input type="checkbox" name="is_recurring" value="1"
-                                   {{ old('is_recurring') ? 'checked' : '' }}
-                                   class="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-                            <div>
-                                <p class="text-sm font-medium text-slate-700">Berulang Tiap Tahun</p>
-                                <p class="text-xs text-slate-500">Contoh: 17 Agustus</p>
-                            </div>
-                        </label>
-                    </div>
-
                     <div class="md:col-span-2">
-                        <label class="mb-2 block text-sm font-medium text-slate-700">Keterangan</label>
-                        <textarea name="description" rows="4"
-                                  class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100">{{ old('description') }}</textarea>
-                        @error('description')
+                        <label class="mb-2 block text-sm font-medium text-slate-700">Alamat</label>
+                        <textarea name="address" rows="3"
+                                  class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100">{{ old('address') }}</textarea>
+                        @error('address')
                             <p class="mt-2 text-sm text-red-500">{{ $message }}</p>
                         @enderror
                     </div>
@@ -106,7 +96,7 @@
                         Simpan
                     </button>
 
-                    <a href="{{ route('superadmin.hari-libur.index') }}"
+                    <a href="{{ route('superadmin.master.instansi.index') }}"
                        class="inline-flex items-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
                         Kembali
                     </a>

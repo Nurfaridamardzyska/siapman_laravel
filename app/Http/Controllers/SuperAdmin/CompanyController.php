@@ -25,28 +25,29 @@ class CompanyController extends Controller
     {
         Company::create($request->all());
 
-        return redirect()->route('superadmin.company.index')
+        return redirect()->route('superadmin.master.instansi.index')
             ->with('success','Data berhasil ditambahkan');
     }
 
-    public function edit(Company $company)
+    public function edit(Company $instansi)
     {
+        $company = $instansi;
         return view('superadmin.company.edit', compact('company'));
     }
 
-    public function update(Request $request, Company $company)
+    public function update(Request $request, Company $instansi)
     {
-        $company->update($request->all());
+        $instansi->update($request->all());
 
-        return redirect()->route('superadmin.company.index')
+        return redirect()->route('superadmin.master.instansi.index')
             ->with('success','Data berhasil diupdate');
     }
 
-    public function destroy(Company $company)
+    public function destroy(Company $instansi)
     {
-        $company->delete();
+        $instansi->delete();
 
-        return back()->with('success','Data berhasil dihapus');
+        return redirect()->route('superadmin.master.instansi.index')->with('success','Data berhasil dihapus');
     }
 
 }

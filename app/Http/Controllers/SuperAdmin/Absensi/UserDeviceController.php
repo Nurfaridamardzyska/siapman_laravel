@@ -9,13 +9,35 @@ use Illuminate\Http\Request;
 
 class UserDeviceController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $items = UserDevice::with('user')
-            ->latest()
-            ->get();
+        $search = $request->get('q');
+        $status = $request->get('status');
 
-        return view('superadmin.absensi.perangkat-pengguna.index', compact('items'));
+        // Statistik Dashboard
+        $stats = [
+            'total' => UserDevice::count(),
+            'active' => UserDevice::where('is_active', true)->count(),
+            'inactive' => UserDevice::where('is_active', false)->count(),
+            'users_no_device' => User::where('role', 'user')->whereDoesntHave('devices')->count(),
+        ];
+
+        // Query Utama
+        $items = UserDevice::with('user')
+            ->when($status !== null && $status !== '', function($q) use ($status) {
+                return $q->where('is_active', $status == '1');
+            })
+            ->when($search, function($q) use ($search) {
+                return $q->whereHas('user', function($u) use ($search) {
+                    $u->where('name', 'like', "%{$search}%")
+                      ->orWhere('nip', 'like', "%{$search}%");
+                });
+            })
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('superadmin.absensi.perangkat-pengguna.index', compact('items', 'stats', 'search', 'status'));
     }
 
     public function create()

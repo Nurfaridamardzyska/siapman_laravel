@@ -20,9 +20,15 @@ class AttendanceWeeklySchedule extends Model
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
+        'category_id' => 'integer',
         'day_of_week' => 'integer',
         'tolerance_minutes' => 'integer',
         'effective_minutes' => 'integer',
+        'is_active' => 'boolean',
     ];
+
+    public function category()
+    {
+        return $this->belongsTo(AttendanceWeeklyScheduleCategory::class, 'category_id');
+    }
 }

@@ -5,12 +5,134 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceLog;
 use App\Models\AttendanceLogStatus;
+use App\Models\AttendanceScanLog;
 use App\Models\Employee;
+use App\Models\FaceVerificationAuditLog;
+use Illuminate\Http\Client\Response as HttpResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class FaceAttendanceController extends Controller
 {
+    private function allowServerCamera(): bool
+    {
+        return (bool) config('face.allow_server_camera', false);
+    }
+
+    private function allowDebugBypass(): bool
+    {
+        return (bool) config('face.allow_debug_bypass', false);
+    }
+
+    private function faceFailureStats(int $userId): array
+    {
+        $key = sprintf('face_failures:%d:%s', $userId, now()->toDateString());
+        $count = Cache::increment($key);
+        if ($count === 1) {
+            Cache::put($key, 1, now()->endOfDay());
+        }
+
+        return [
+            'count' => (int) $count,
+            'manual_review_required' => $count >= 3,
+        ];
+    }
+
+    private function resetFaceFailureStats(int $userId): void
+    {
+        $key = sprintf('face_failures:%d:%s', $userId, now()->toDateString());
+        Cache::forget($key);
+    }
+
+    private function faceServiceUrl(): string
+    {
+        return config('services.face_service.url', 'http://127.0.0.1:5001');
+    }
+
+    private function faceHttpClient()
+    {
+        $timeout = (int) config('face.service_timeout_seconds', 20);
+        $connectTimeout = (int) config('face.service_connect_timeout_seconds', 5);
+
+        return Http::timeout($timeout)->connectTimeout($connectTimeout);
+    }
+
+    private function responsePayload(HttpResponse $response): array
+    {
+        $payload = $response->json();
+        return is_array($payload) ? $payload : [
+            'message' => trim((string) $response->body()) !== ''
+                ? trim((string) $response->body())
+                : 'Response tidak valid dari face service.',
+        ];
+    }
+
+    private function logVerificationAudit(
+        Request $request,
+        array $result,
+        int $statusCode,
+        bool $matched,
+        bool $livenessPassed,
+        bool $manualReviewRequired = false,
+        int $failedAttemptsToday = 0,
+        ?int $attendanceLogId = null,
+        ?int $employeeId = null
+    ): void {
+        try {
+            FaceVerificationAuditLog::create([
+                'attendance_log_id' => $attendanceLogId,
+                'user_id' => optional($request->user())->id,
+                'employee_id' => $employeeId,
+                'type' => $request->input('type'),
+                'matched' => $matched,
+                'liveness_passed' => $livenessPassed,
+                'manual_review_required' => $manualReviewRequired,
+                'failed_attempts_today' => $failedAttemptsToday,
+                'confidence' => $result['confidence'] ?? null,
+                'distance' => $result['distance'] ?? null,
+                'threshold' => $result['threshold'] ?? null,
+                'session_id' => (string) $request->input('session_id', ''),
+                'device_id' => (string) $request->header('X-Device-Id', ''),
+                'latitude' => $request->input('latitude'),
+                'longitude' => $request->input('longitude'),
+                'request_nonce' => (string) $request->header('X-Request-Nonce', ''),
+                'request_ip' => (string) $request->ip(),
+                'failure_reason' => $result['message'] ?? null,
+                'response_code' => $statusCode,
+                'service_message' => is_string($result['message'] ?? null) ? $result['message'] : null,
+                'metadata' => [
+                    'proof_ttl_seconds' => $result['proof_ttl_seconds'] ?? null,
+                    'challenge_total_steps' => $result['challenge_total_steps'] ?? null,
+                    'manual_review_required' => $manualReviewRequired,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Gagal menyimpan audit verifikasi wajah', [
+                'error' => $e->getMessage(),
+                'user_id' => optional($request->user())->id,
+            ]);
+        }
+    }
+
+    private function calculateDistanceInMeters($lat1, $lon1, $lat2, $lon2)
+    {
+        $earthRadius = 6371000; // in meters
+
+        $latDelta = deg2rad($lat2 - $lat1);
+        $lonDelta = deg2rad($lon2 - $lon1);
+
+        $a = sin($latDelta / 2) * sin($latDelta / 2) +
+             cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
+             sin($lonDelta / 2) * sin($lonDelta / 2);
+
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+        return $earthRadius * $c;
+    }
+
     public function registerFace(Request $request)
     {
         $request->validate([
@@ -33,15 +155,53 @@ class FaceAttendanceController extends Controller
             ], 404);
         }
 
-        $response = Http::attach(
+        $response = $this->faceHttpClient()->attach(
             'face_image',
             file_get_contents($request->file('face_image')->getRealPath()),
             $request->file('face_image')->getClientOriginalName()
-        )->post('http://127.0.0.1:5001/register', [
+        )->post($this->faceServiceUrl() . '/register', [
             'user_id' => $user->id,
         ]);
 
-        return response()->json($response->json(), $response->status());
+        return response()->json($this->responsePayload($response), $response->status());
+    }
+
+    public function livenessStatus(Request $request)
+    {
+        $response = $this->faceHttpClient()->get($this->faceServiceUrl() . '/status');
+        return response()->json($this->responsePayload($response), $response->status());
+    }
+
+    public function livenessFrame(Request $request)
+    {
+        if ($request->isMethod('post')) {
+            $request->validate([
+                'face_image' => 'required|image',
+            ]);
+
+            $response = $this->faceHttpClient()->attach(
+                'face_image',
+                file_get_contents($request->file('face_image')->getRealPath()),
+                $request->file('face_image')->getClientOriginalName()
+            )->post($this->faceServiceUrl() . '/frame-upload');
+
+            return response()->json($this->responsePayload($response), $response->status());
+        }
+
+        if (!$this->allowServerCamera()) {
+            return response()->json([
+                'message' => 'Streaming kamera server dinonaktifkan di environment ini.',
+            ], 403);
+        }
+
+        $response = $this->faceHttpClient()->get($this->faceServiceUrl() . '/frame');
+        return response()->json($this->responsePayload($response), $response->status());
+    }
+
+    public function livenessReset(Request $request)
+    {
+        $response = $this->faceHttpClient()->post($this->faceServiceUrl() . '/reset');
+        return response()->json($this->responsePayload($response), $response->status());
     }
 
     public function verify(Request $request)
@@ -50,7 +210,18 @@ class FaceAttendanceController extends Controller
             $request->validate([
                 'face_image' => 'required|image',
                 'type' => 'required|in:masuk,pulang',
+                'latitude' => 'required|numeric',
+                'longitude' => 'required|numeric',
+                'session_id' => 'required|string',
+                'liveness_token' => 'required|string',
             ]);
+
+            $debugMode = $request->boolean('debug_mode');
+            if ($debugMode && !$this->allowDebugBypass()) {
+                return response()->json([
+                    'message' => 'debug_mode tidak diizinkan di environment ini.',
+                ], 403);
+            }
 
             $user = $request->user();
 
@@ -60,7 +231,9 @@ class FaceAttendanceController extends Controller
                 ], 422);
             }
 
-            $employee = Employee::where('nip', $user->nip)->first();
+            $employee = Employee::where('nip', $user->nip)->with(['locations' => function($q) {
+                $q->where('employee_locations.is_active', true);
+            }])->first();
 
             if (!$employee) {
                 return response()->json([
@@ -68,28 +241,97 @@ class FaceAttendanceController extends Controller
                 ], 404);
             }
 
-            $response = Http::attach(
+            // --- Lokasi Geolocation Check ---
+            $assignedLocations = $employee->locations;
+            if ($assignedLocations->isNotEmpty()) {
+                $isWithinRadius = false;
+                $userLat = (float) $request->latitude;
+                $userLon = (float) $request->longitude;
+                $minDistance = PHP_FLOAT_MAX;
+
+                foreach ($assignedLocations as $location) {
+                    $distance = $this->calculateDistanceInMeters(
+                        $userLat, $userLon,
+                        (float)$location->latitude, (float)$location->longitude
+                    );
+
+                    $minDistance = min($minDistance, $distance);
+                    $radius = $location->radius_meters > 0 ? $location->radius_meters : 50;
+
+                    if ($distance <= $radius) {
+                        $isWithinRadius = true;
+                        break;
+                    }
+                }
+
+                if (!$isWithinRadius) {
+                    return response()->json([
+                        'message' => 'Jarak presensi terlalu jauh (Lebih ' . round($minDistance) . ' meter dari lokasi).',
+                    ], 422);
+                }
+            }
+            // --- End Lokasi Check ---
+
+            $response = $this->faceHttpClient()->attach(
                 'face_image',
                 file_get_contents($request->file('face_image')->getRealPath()),
                 $request->file('face_image')->getClientOriginalName()
-            )->post('http://127.0.0.1:5001/verify', [
+            )->post($this->faceServiceUrl() . '/verify', [
                 'user_id' => $user->id,
+                'session_id' => $request->session_id,
+                'liveness_token' => $request->liveness_token,
             ]);
 
-            $result = $response->json();
+            $result = $this->responsePayload($response);
 
             if (!$response->successful()) {
-                return response()->json($result, $response->status());
+                $stats = $this->faceFailureStats((int) $user->id);
+                $payload = array_merge($result, [
+                    'manual_review_required' => $stats['manual_review_required'],
+                    'failed_attempts_today' => $stats['count'],
+                ]);
+                $this->logVerificationAudit(
+                    $request,
+                    $payload,
+                    $response->status(),
+                    false,
+                    false,
+                    $stats['manual_review_required'],
+                    $stats['count'],
+                    null,
+                    (int) $employee->id
+                );
+
+                return response()->json($payload, $response->status());
             }
 
             if (!($result['matched'] ?? false)) {
-                return response()->json([
+                $stats = $this->faceFailureStats((int) $user->id);
+                $payload = [
                     'message' => 'Wajah tidak dikenali',
                     'matched' => false,
                     'confidence' => $result['confidence'] ?? null,
                     'distance' => $result['distance'] ?? null,
-                ], 422);
+                    'threshold' => $result['threshold'] ?? null,
+                    'manual_review_required' => $stats['manual_review_required'],
+                    'failed_attempts_today' => $stats['count'],
+                ];
+                $this->logVerificationAudit(
+                    $request,
+                    $payload,
+                    422,
+                    false,
+                    true,
+                    $stats['manual_review_required'],
+                    $stats['count'],
+                    null,
+                    (int) $employee->id
+                );
+
+                return response()->json($payload, 422);
             }
+
+            $this->resetFaceFailureStats((int) $user->id);
 
             $today = now()->toDateString();
 
@@ -112,68 +354,155 @@ class FaceAttendanceController extends Controller
                 ]
             );
 
+            $attendanceTime = now();
+            $photoPath = null;
+            $message = 'Absensi berhasil';
+            $hadCheckInBefore = !empty($attendanceLog->check_in_at);
+            $hadCheckOutBefore = !empty($attendanceLog->check_out_at);
+
             if ($request->type === 'masuk') {
-                if ($attendanceLog->check_in_at) {
-                    return response()->json([
+                if ($hadCheckInBefore && !$debugMode) {
+                    $payload = [
                         'message' => 'Anda sudah melakukan absensi masuk hari ini',
                         'matched' => true,
-                        'confidence' => $result['confidence'] ?? null,
-                        'distance' => $result['distance'] ?? null,
-                        'type' => 'masuk',
-                        'attendance_date' => optional($attendanceLog->attendance_date)->format('Y-m-d'),
-                        'check_in_at' => $attendanceLog->check_in_at,
-                        'check_out_at' => $attendanceLog->check_out_at,
-                    ], 200);
+                    ];
+                    $this->logVerificationAudit(
+                        $request,
+                        $payload,
+                        422,
+                        true,
+                        true,
+                        false,
+                        0,
+                        (int) $attendanceLog->id,
+                        (int) $employee->id
+                    );
+
+                    return response()->json($payload, 422);
                 }
 
-                $attendanceLog->check_in_at = now()->format('H:i:s');
-                $attendanceLog->check_in_photo_path = $request->file('face_image')
+                $attendanceLog->check_in_at = $attendanceTime->format('H:i:s');
+                $photoPath = $request->file('face_image')
                     ->store('attendance_faces/checkin', 'public');
+                $attendanceLog->check_in_photo_path = $photoPath;
             }
 
             if ($request->type === 'pulang') {
-                if (!$attendanceLog->check_in_at) {
-                    return response()->json([
+                if (!$attendanceLog->check_in_at && !$debugMode) {
+                    $payload = [
                         'message' => 'Anda belum melakukan absensi masuk hari ini',
-                    ], 422);
+                        'matched' => true,
+                    ];
+                    $this->logVerificationAudit(
+                        $request,
+                        $payload,
+                        422,
+                        true,
+                        true,
+                        false,
+                        0,
+                        (int) $attendanceLog->id,
+                        (int) $employee->id
+                    );
+
+                    return response()->json($payload, 422);
                 }
 
-                if ($attendanceLog->check_out_at) {
-                    return response()->json([
+                if ($hadCheckOutBefore && !$debugMode) {
+                    $payload = [
                         'message' => 'Anda sudah melakukan absensi pulang hari ini',
                         'matched' => true,
-                        'confidence' => $result['confidence'] ?? null,
-                        'distance' => $result['distance'] ?? null,
-                        'type' => 'pulang',
-                        'attendance_date' => optional($attendanceLog->attendance_date)->format('Y-m-d'),
-                        'check_in_at' => $attendanceLog->check_in_at,
-                        'check_out_at' => $attendanceLog->check_out_at,
-                    ], 200);
+                    ];
+                    $this->logVerificationAudit(
+                        $request,
+                        $payload,
+                        422,
+                        true,
+                        true,
+                        false,
+                        0,
+                        (int) $attendanceLog->id,
+                        (int) $employee->id
+                    );
+
+                    return response()->json($payload, 422);
                 }
 
-                $attendanceLog->check_out_at = now()->format('H:i:s');
-                $attendanceLog->check_out_photo_path = $request->file('face_image')
+                $attendanceLog->check_out_at = $attendanceTime->format('H:i:s');
+                $photoPath = $request->file('face_image')
                     ->store('attendance_faces/checkout', 'public');
+                $attendanceLog->check_out_photo_path = $photoPath;
             }
 
             $attendanceLog->save();
 
-            return response()->json([
-                'message' => 'Absensi berhasil',
+            AttendanceScanLog::create([
+                'attendance_log_id' => $attendanceLog->id,
+                'user_id' => $user->id,
+                'type' => $request->type,
                 'matched' => true,
                 'confidence' => $result['confidence'] ?? null,
                 'distance' => $result['distance'] ?? null,
+                'session_id' => $request->session_id,
+                'liveness_passed' => true,
+                'device_id' => (string) $request->header('X-Device-Id', ''),
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
+                'request_nonce' => (string) $request->header('X-Request-Nonce', ''),
+                'request_ip' => (string) $request->ip(),
+                'face_image_path' => $photoPath,
+                'attendance_time' => $attendanceTime,
+            ]);
+
+            $payload = [
+                'message' => $message,
+                'matched' => true,
+                'confidence' => $result['confidence'] ?? null,
+                'distance' => $result['distance'] ?? null,
+                'threshold' => $result['threshold'] ?? null,
                 'type' => $request->type,
                 'attendance_date' => optional($attendanceLog->attendance_date)->format('Y-m-d'),
                 'check_in_at' => $attendanceLog->check_in_at,
                 'check_out_at' => $attendanceLog->check_out_at,
-            ], 200);
+                'attendance_time' => $attendanceTime->format('Y-m-d H:i:s'),
+            ];
+
+            $this->logVerificationAudit(
+                $request,
+                $payload,
+                200,
+                true,
+                true,
+                false,
+                0,
+                (int) $attendanceLog->id,
+                (int) $employee->id
+            );
+
+            return response()->json($payload, 200);
+        } catch (ValidationException $e) {
+            $payload = [
+                'message' => 'Validasi request gagal.',
+                'errors' => $e->errors(),
+            ];
+            $this->logVerificationAudit($request, $payload, 422, false, false);
+            return response()->json($payload, 422);
         } catch (\Throwable $e) {
-            return response()->json([
+            Log::error('Face verify endpoint error', [
                 'message' => $e->getMessage(),
-                'line' => $e->getLine(),
-                'file' => $e->getFile(),
-            ], 500);
+                'trace' => $e->getTraceAsString(),
+            ]);
+            $payload = app()->isLocal()
+                ? [
+                    'message' => $e->getMessage(),
+                    'line' => $e->getLine(),
+                    'file' => $e->getFile(),
+                ]
+                : [
+                    'message' => 'Terjadi kesalahan internal saat verifikasi wajah.',
+                ];
+            $this->logVerificationAudit($request, $payload, 500, false, false);
+            return response()->json($payload, 500);
         }
     }
 
@@ -198,7 +527,9 @@ class FaceAttendanceController extends Controller
                 ], 404);
             }
 
-            $logs = AttendanceLog::with('status')
+            $logs = AttendanceLog::with(['status', 'scanLogs' => function ($query) {
+                    $query->orderByDesc('attendance_time');
+                }])
                 ->where('employee_id', $employee->id)
                 ->orderByDesc('attendance_date')
                 ->orderByDesc('check_in_at')
@@ -222,6 +553,24 @@ class FaceAttendanceController extends Controller
                         'check_in_photo_path' => $item->check_in_photo_path,
                         'check_out_photo_path' => $item->check_out_photo_path,
                         'note' => $item->note,
+                        'scan_logs' => $item->scanLogs->map(function ($scan) {
+                            return [
+                                'id' => $scan->id,
+                                'type' => $scan->type,
+                                'matched' => $scan->matched,
+                                'confidence' => $scan->confidence,
+                                'distance' => $scan->distance,
+                                'session_id' => $scan->session_id,
+                                'liveness_passed' => $scan->liveness_passed,
+                                'device_id' => $scan->device_id,
+                                'latitude' => $scan->latitude,
+                                'longitude' => $scan->longitude,
+                                'request_nonce' => $scan->request_nonce,
+                                'request_ip' => $scan->request_ip,
+                                'attendance_time' => optional($scan->attendance_time)->format('Y-m-d H:i:s'),
+                                'face_image_path' => $scan->face_image_path,
+                            ];
+                        })->values(),
                     ];
                 }),
             ], 200);

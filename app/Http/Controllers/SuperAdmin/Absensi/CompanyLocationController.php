@@ -29,7 +29,7 @@ class CompanyLocationController extends Controller
     {
         $data = $request->validate([
             'location_id' => ['required', 'exists:locations,id'],
-            'unit_id' => ['nullable', 'integer'],
+            'unit_id' => ['nullable', 'integer', 'min:0'],
             'unit_name' => ['nullable', 'string', 'max:255'],
         ]);
 

@@ -41,7 +41,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
-                        @forelse($data as $index => $log)
+                        @forelse($data as $index => $item)
                             <tr class="hover:bg-slate-50/50 transition-colors duration-200 group">
                                 <td class="px-6 py-4 text-sm text-slate-500 font-medium whitespace-nowrap">
                                     {{ $index + 1 }}
@@ -50,14 +50,14 @@
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center gap-3">
                                         <div class="w-10 h-10 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-sm ring-1 ring-slate-200/60">
-                                            {{ substr($log->employee?->name ?? '?', 0, 2) }}
+                                            {{ substr($item->user->name ?? '?', 0, 2) }}
                                         </div>
                                         <div>
                                             <p class="text-sm font-semibold text-slate-800">
-                                                {{ $log->employee?->name ?? '-' }}
+                                                {{ $item->user->name ?? '-' }}
                                             </p>
                                             <p class="text-xs text-slate-500 mt-0.5">
-                                                NIP. {{ $log->employee?->nip ?? '-' }}
+                                                NIP. {{ $item->employee?->nip ?? '-' }}
                                             </p>
                                         </div>
                                     </div>
@@ -65,13 +65,13 @@
                                 
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
                                     <div class="flex flex-col items-center justify-center">
-                                        <div class="inline-flex items-center justify-center px-3 py-1.5 rounded-lg {{ $log->check_in_at ? 'bg-slate-50 text-slate-700 border border-slate-200/60' : 'text-slate-400' }}">
+                                        <div class="inline-flex items-center justify-center px-3 py-1.5 rounded-lg {{ $item->log && $item->log->check_in_at ? 'bg-slate-50 text-slate-700 border border-slate-200/60' : 'text-slate-400' }}">
                                             <span class="text-sm font-medium">
-                                                {{ $log->check_in_at ? \Carbon\Carbon::parse($log->check_in_at)->format('H:i') : '--:--' }}
+                                                {{ $item->log && $item->log->check_in_at ? \Carbon\Carbon::parse($item->log->check_in_at)->format('H:i') : '--:--' }}
                                             </span>
                                         </div>
-                                        @if($log->check_in_photo_path)
-                                            <a href="{{ Storage::url($log->check_in_photo_path) }}" target="_blank" class="text-[11px] font-medium text-blue-600 hover:text-blue-800 mt-1.5 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                                        @if($item->log && $item->log->check_in_photo_path)
+                                            <a href="{{ Storage::url($item->log->check_in_photo_path) }}" target="_blank" class="text-[11px] font-medium text-blue-600 hover:text-blue-800 mt-1.5 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                                                 Lihat Bukti Foto
                                             </a>
                                         @endif
@@ -80,13 +80,13 @@
                                 
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
                                     <div class="flex flex-col items-center justify-center">
-                                        <div class="inline-flex items-center justify-center px-3 py-1.5 rounded-lg {{ $log->check_out_at ? 'bg-slate-50 text-slate-700 border border-slate-200/60' : 'text-slate-400' }}">
+                                        <div class="inline-flex items-center justify-center px-3 py-1.5 rounded-lg {{ $item->log && $item->log->check_out_at ? 'bg-slate-50 text-slate-700 border border-slate-200/60' : 'text-slate-400' }}">
                                             <span class="text-sm font-medium">
-                                                {{ $log->check_out_at ? \Carbon\Carbon::parse($log->check_out_at)->format('H:i') : '--:--' }}
+                                                {{ $item->log && $item->log->check_out_at ? \Carbon\Carbon::parse($item->log->check_out_at)->format('H:i') : '--:--' }}
                                             </span>
                                         </div>
-                                        @if($log->check_out_photo_path)
-                                            <a href="{{ Storage::url($log->check_out_photo_path) }}" target="_blank" class="text-[11px] font-medium text-blue-600 hover:text-blue-800 mt-1.5 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                                        @if($item->log && $item->log->check_out_photo_path)
+                                            <a href="{{ Storage::url($item->log->check_out_photo_path) }}" target="_blank" class="text-[11px] font-medium text-blue-600 hover:text-blue-800 mt-1.5 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                                                 Lihat Bukti Foto
                                             </a>
                                         @endif
@@ -95,18 +95,17 @@
                                 
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
                                     @php
-                                        if (isset($log->status)) {
-                                            $statusText = $log->status->name;
-                                            if (stripos($statusText, 'tepat waktu') !== false || stripos($statusText, 'hadir') !== false) {
-                                                $badgeColor = 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-500/20';
-                                            } elseif (stripos($statusText, 'terlambat') !== false) {
-                                                $badgeColor = 'bg-amber-50 text-amber-600 ring-1 ring-amber-500/20';
-                                            } else {
-                                                $badgeColor = 'bg-blue-50 text-blue-600 ring-1 ring-blue-500/20';
-                                            }
+                                        $statusText = $item->status;
+                                        if (stripos($statusText, 'hadir') !== false) {
+                                            $badgeColor = 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-500/20';
+                                        } elseif (stripos($statusText, 'terlambat') !== false) {
+                                            $badgeColor = 'bg-amber-50 text-amber-600 ring-1 ring-amber-500/20';
+                                        } elseif (stripos($statusText, 'alpha') !== false) {
+                                            $badgeColor = 'bg-rose-50 text-rose-600 ring-1 ring-rose-500/20';
+                                        } elseif (stripos($statusText, 'cuti') !== false || stripos($statusText, 'izin') !== false || stripos($statusText, 'sakit') !== false) {
+                                            $badgeColor = 'bg-purple-50 text-purple-600 ring-1 ring-purple-500/20';
                                         } else {
-                                            $statusText = $log->check_in_at ? 'Hadir' : 'Belum Presensi';
-                                            $badgeColor = $log->check_in_at ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-500/20' : 'bg-slate-50 text-slate-500 ring-1 ring-slate-500/20';
+                                            $badgeColor = 'bg-slate-50 text-slate-500 ring-1 ring-slate-500/20';
                                         }
                                     @endphp
                                     <span class="px-3 py-1 text-xs font-semibold rounded-md shadow-sm {{ $badgeColor }}">

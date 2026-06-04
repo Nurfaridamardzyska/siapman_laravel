@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\FaultReport;
+use App\Models\MachineFault;
 use Illuminate\Http\Request;
 
 class FaultReportController extends Controller
@@ -32,13 +33,11 @@ class FaultReportController extends Controller
         $reports = FaultReport::where('employee_id', $employee->id)
             ->orderByDesc('report_date')
             ->orderByDesc('id')
-            ->get();
-
-        return response()->json([
-            'message' => 'Laporan kendala berhasil diambil',
-            'data' => $reports->map(function ($item) {
+            ->get()
+            ->map(function ($item) {
                 return [
                     'id' => $item->id,
+                    'type' => 'user_report',
                     'title' => $item->title,
                     'description' => $item->description,
                     'status' => $item->status,
@@ -48,7 +47,37 @@ class FaultReportController extends Controller
                     'evidence_url' => $item->evidence_path ? asset('storage/' . $item->evidence_path) : null,
                     'created_at' => optional($item->created_at)->format('Y-m-d H:i:s'),
                 ];
-            }),
+            });
+
+        $adminReports = MachineFault::where(function ($query) use ($employee) {
+                $query->whereNull('employee_id')
+                      ->orWhere('employee_id', $employee->id);
+            })
+            ->with(['machineFaultType', 'machineFaultStatus'])
+            ->orderByDesc('incident_date')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'type' => 'admin_report',
+                    'title' => 'KENDALA: ' . ($item->machineFaultType ? $item->machineFaultType->name : 'Umum'),
+                    'description' => $item->description,
+                    'status' => $item->machineFaultStatus ? $item->machineFaultStatus->name : 'Aktif',
+                    'handled_by' => 'ADMIN OPD',
+                    'report_date' => optional($item->incident_date)->format('Y-m-d'),
+                    'evidence_path' => $item->evidence_path,
+                    'evidence_url' => $item->evidence_path ? asset('storage/' . $item->evidence_path) : null,
+                    'created_at' => optional($item->created_at)->format('Y-m-d H:i:s'),
+                ];
+            });
+
+        $combined = $reports->concat($adminReports)->sortByDesc(function ($item) {
+            return $item['report_date'] . '_' . $item['created_at'];
+        })->values();
+
+        return response()->json([
+            'message' => 'Laporan kendala berhasil diambil',
+            'data' => $combined,
         ]);
     }
 

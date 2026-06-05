@@ -5,38 +5,32 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'SIAPMAN') }} - Autentikasi</title>
+        <title>{{ config('app.name', 'SIAPMAN') }} - Login</title>
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=outfit:300,400,500,600,700,800&display=swap" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         
         <style>
             body {
-                font-family: 'Outfit', sans-serif;
-                background-color: #0f172a;
-                background-image: 
-                    radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
-                    radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
-                    radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
-                background-attachment: fixed;
-                background-size: cover;
-                color: #e2e8f0;
+                font-family: 'Inter', sans-serif;
+                background-color: #f8fafc;
+            }
+            .corporate-bg {
+                background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
             }
             .glass-card {
-                background: rgba(255, 255, 255, 0.03);
-                backdrop-filter: blur(16px);
-                -webkit-backdrop-filter: blur(16px);
-                border: 1px solid rgba(255, 255, 255, 0.05);
-                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                background: #ffffff;
+                border: 1px solid rgba(226, 232, 240, 0.8);
+                box-shadow: 0 10px 40px -10px rgba(15, 23, 42, 0.08);
             }
             .animate-fade-in-up {
-                animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                animation: fadeInUp 0.6s ease-out forwards;
                 opacity: 0;
-                transform: translateY(20px);
+                transform: translateY(15px);
             }
             @keyframes fadeInUp {
                 to {
@@ -45,37 +39,35 @@
                 }
             }
             .input-field {
-                background: rgba(15, 23, 42, 0.6);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                color: white;
-                transition: all 0.3s ease;
+                background: #ffffff;
+                border: 1px solid #cbd5e1;
+                color: #334155;
+                transition: all 0.2s ease;
             }
             .input-field:focus {
-                background: rgba(15, 23, 42, 0.8);
-                border-color: #6366f1;
-                box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+                border-color: #2563eb;
+                box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
             }
         </style>
     </head>
-    <body class="antialiased min-h-screen flex items-center justify-center relative overflow-hidden">
+    <body class="antialiased min-h-screen flex items-center justify-center relative overflow-hidden corporate-bg">
         
-        <!-- Decorative Background Orbs -->
-        <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-indigo-600 rounded-full mix-blend-multiply filter blur-[128px] opacity-40 animate-pulse" style="animation-duration: 8s;"></div>
-        <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-rose-600 rounded-full mix-blend-multiply filter blur-[128px] opacity-40 animate-pulse" style="animation-duration: 10s; animation-delay: 2s;"></div>
+        <!-- Decorative Background Shapes -->
+        <div class="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-blue-900 to-blue-800" style="clip-path: polygon(0 0, 100% 0, 100% 60%, 0% 100%);"></div>
 
-        <div class="w-full max-w-md px-6 py-12 relative z-10 animate-fade-in-up">
+        <div class="w-full max-w-[420px] px-6 py-12 relative z-10 animate-fade-in-up">
             
             <!-- Branding -->
             <div class="flex flex-col items-center justify-center mb-8">
-                <div class="w-16 h-16 bg-gradient-to-tr from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/30 mb-4 transform hover:scale-105 transition-transform duration-300">
-                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.071 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"></path></svg>
+                <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-md mb-4 border border-slate-100">
+                    <svg class="w-9 h-9 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
                 </div>
                 <h1 class="text-3xl font-extrabold tracking-tight text-white">SIAPMAN</h1>
-                <p class="text-slate-400 text-sm mt-1 font-medium">Sistem Informasi Absensi & Presensi Mandiri</p>
+                <p class="text-blue-100 text-sm mt-1 font-medium">Sistem Informasi Absensi & Presensi Mandiri</p>
             </div>
 
             <!-- Card -->
-            <div class="glass-card rounded-3xl p-8">
+            <div class="glass-card rounded-2xl p-8">
                 {{ $slot }}
             </div>
             

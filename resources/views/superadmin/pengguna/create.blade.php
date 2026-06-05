@@ -429,32 +429,22 @@
             if (stream) stream.getTracks().forEach(track => track.stop());
             
             try {
-                const captureResp = await fetch(`${FACE_SERVICE_URL}/capture`);
-                const captureData = await captureResp.json();
+                // Ambil foto langsung dari canvas lokal browser (bersih tanpa kotak hijau)
+                const localImage = canvas.toDataURL('image/jpeg', 0.8);
                 
-                if (captureData.image) {
-                    faceImageInput.value = captureData.image;
-                    facePreviewImg.src = captureData.image;
+                if (localImage) {
+                    faceImageInput.value = localImage;
+                    facePreviewImg.src = localImage;
                     
                     activeCamera.classList.add('hidden');
                     previewUI.classList.remove('hidden');
                     instructionCard.classList.add('hidden');
+                    stepIndicator.classList.add('hidden');
                     btnSubmit.disabled = false;
-                } else {
-                    alert("Gagal mengambil foto dari server: " + (captureData.message || "Unknown error"));
-                    // Fallback to the stream image (even if it has a green box) just so they can proceed
-                    if (streamImg.src) {
-                        faceImageInput.value = streamImg.src;
-                        facePreviewImg.src = streamImg.src;
-                        activeCamera.classList.add('hidden');
-                        previewUI.classList.remove('hidden');
-                        instructionCard.classList.add('hidden');
-                        btnSubmit.disabled = false;
-                    }
                 }
             } catch (err) {
                 console.error("Capture failed", err);
-                alert("Koneksi gagal saat menyimpan foto. Silakan coba lagi.");
+                alert("Gagal memproses foto lokal. Silakan coba lagi.");
             }
         }
 

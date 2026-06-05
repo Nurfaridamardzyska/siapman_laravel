@@ -408,9 +408,21 @@
                     previewUI.classList.remove('hidden');
                     instructionCard.classList.add('hidden');
                     btnSubmit.disabled = false;
+                } else {
+                    alert("Gagal mengambil foto dari server: " + (captureData.message || "Unknown error"));
+                    // Fallback to the stream image (even if it has a green box) just so they can proceed
+                    if (streamImg.src) {
+                        faceImageInput.value = streamImg.src;
+                        facePreviewImg.src = streamImg.src;
+                        activeCamera.classList.add('hidden');
+                        previewUI.classList.remove('hidden');
+                        instructionCard.classList.add('hidden');
+                        btnSubmit.disabled = false;
+                    }
                 }
             } catch (err) {
                 console.error("Capture failed", err);
+                alert("Koneksi gagal saat menyimpan foto. Silakan coba lagi.");
             }
         }
 

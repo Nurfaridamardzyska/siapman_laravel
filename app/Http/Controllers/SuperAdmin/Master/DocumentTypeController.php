@@ -45,7 +45,7 @@ class DocumentTypeController extends Controller
     {
         return view(
             'superadmin.master.tipe-dokumen.edit',
-            compact('tipe_dokumen')
+            ['item' => $tipe_dokumen]
         );
     }
 

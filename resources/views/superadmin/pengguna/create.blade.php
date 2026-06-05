@@ -312,6 +312,7 @@
                 activeCamera.classList.remove('hidden');
                 activeCamera.style.display = 'block'; // Force display
                 instructionCard.classList.remove('hidden');
+                stepIndicator.classList.remove('hidden'); // Show sequence
                 
                 isRunning = true;
                 processFrame();
@@ -370,12 +371,43 @@
 
             // Update Instruction Text
             let msg = status;
-            if (status === "Idle") msg = "Halo! Saya Asisten Anda. Siapkan Wajah";
-            if (status === "Mohon diam... Stabilisasi wajah") msg = "DIAM 5 DETIK (Jangan Bergerak)";
-            if (status === "Silakan berkali-kali berkediplah") msg = "MOHON BERKEDIP";
-            if (status === "Silakan gelengkan kepala Anda") msg = "GELENGKAN KEPALA ANDA";
-            if (status === "HANYA BOLEH SATU WAJAH! (Resetting...)") msg = "LOG ERROR: HARUS SATU WAJAH!";
+            if (status.includes("Idle")) msg = "MOHON TUNGGU...";
+            if (status.includes("Mohon diam") || status.includes("Stabilisasi")) msg = "DIAM (TAHAN WAJAH)";
+            if (status.includes("berkedip")) msg = "SILAKAN BERKEDIP";
+            if (status.includes("geleng")) msg = "GELENGKAN KEPALA (KIRI/KANAN)";
+            if (status.includes("mulut")) msg = "BUKA MULUT ANDA";
+            if (status.includes("HANYA BOLEH") || status.includes("satu wajah")) msg = "HANYA SATU WAJAH DIIZINKAN!";
+            if (status.includes("hilang")) msg = "WAJAH TIDAK TERLIHAT!";
             if (data.valid) msg = "VERIFIKASI BERHASIL!";
+
+            // Update Step Sequence Visuals
+            const step = data.step !== undefined ? data.step : 0;
+            const valid = data.valid;
+
+            // Step 1: Stabilize
+            if (step >= 0 || valid) {
+                step1.className = "h-8 w-8 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all duration-300 bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200";
+            } else {
+                step1.className = "h-8 w-8 rounded-full border-2 border-slate-200 flex items-center justify-center text-xs font-bold text-slate-400 transition-all duration-300";
+            }
+
+            // Step 2: Challenge 1
+            if (step >= 1 || valid) {
+                line1.className = "h-0.5 w-6 transition-all duration-300 bg-blue-600";
+                step2.className = "h-8 w-8 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all duration-300 bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200";
+            } else {
+                line1.className = "h-0.5 w-6 bg-slate-200 transition-all duration-300";
+                step2.className = "h-8 w-8 rounded-full border-2 border-slate-200 flex items-center justify-center text-xs font-bold text-slate-400 transition-all duration-300";
+            }
+
+            // Step 3: Challenge 2
+            if (step >= 2 || valid) {
+                line2.className = "h-0.5 w-6 transition-all duration-300 bg-blue-600";
+                step3.className = "h-8 w-8 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all duration-300 bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200";
+            } else {
+                line2.className = "h-0.5 w-6 bg-slate-200 transition-all duration-300";
+                step3.className = "h-8 w-8 rounded-full border-2 border-slate-200 flex items-center justify-center text-xs font-bold text-slate-400 transition-all duration-300";
+            }
 
             if (warning && !data.valid) {
                 instructionCard.classList.remove('bg-blue-50', 'border-blue-100');
@@ -435,6 +467,7 @@
             activeCamera.classList.add('hidden');
             placeholder.classList.remove('hidden');
             instructionCard.classList.add('hidden');
+            stepIndicator.classList.add('hidden'); // Hide sequence
             btnSubmit.disabled = true;
         }
 

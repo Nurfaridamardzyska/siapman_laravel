@@ -39,10 +39,10 @@ ALLOW_SERVER_CAMERA = os.getenv(
 FACE_MATCH_THRESHOLD = float(os.getenv("FACE_MATCH_THRESHOLD", "0.6"))
 EMBEDDINGS_KEY = os.getenv("FACE_EMBEDDINGS_KEY", "").strip()
 
-# Thresholds for liveliness (ULTRA-STRICT)
-EAR_THRESHOLD = 0.16  # Lebih ketat lagi
-TURN_THRESHOLD = 1.70 # Butuh gelengan yang lebih jelas
-MOUTH_OPEN_THRESHOLD = 0.30
+# Thresholds for liveliness (Relaxed for better UX)
+EAR_THRESHOLD = 0.22
+TURN_THRESHOLD = 1.40
+MOUTH_OPEN_THRESHOLD = 0.25
 PASSIVE_BLUR_MIN = float(os.getenv("FACE_PASSIVE_BLUR_MIN", "15.0"))
 PASSIVE_HIGHLIGHT_MAX = float(os.getenv("FACE_PASSIVE_HIGHLIGHT_MAX", "0.30"))
 

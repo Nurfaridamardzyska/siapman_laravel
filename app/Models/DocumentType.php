@@ -14,7 +14,9 @@ class DocumentType extends Model
         'code',
         'description',
         'category',
+        'color',
         'requires_approval',
+        'is_required',
         'is_active'
     ];
 }

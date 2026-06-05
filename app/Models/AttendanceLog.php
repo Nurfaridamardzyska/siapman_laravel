@@ -4,8 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+use App\Models\Scopes\DepartmentScope;
+
 class AttendanceLog extends Model
 {
+    protected static function booted()
+    {
+        static::addGlobalScope(new DepartmentScope);
+    }
+
     protected $fillable = [
         'employee_id',
         'attendance_date',
@@ -21,13 +28,18 @@ class AttendanceLog extends Model
         'attendance_date' => 'date',
     ];
 
-        public function employee()
+    public function employee()
     {
-        return $this->belongsTo(\App\Models\User::class, 'employee_id');
+        return $this->belongsTo(Employee::class, 'employee_id');
     }
 
     public function status()
     {
         return $this->belongsTo(AttendanceLogStatus::class, 'status_id');
+    }
+
+    public function scanLogs()
+    {
+        return $this->hasMany(AttendanceScanLog::class, 'attendance_log_id');
     }
 }

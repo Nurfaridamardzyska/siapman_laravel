@@ -21,7 +21,7 @@ class EmployeeLocationController extends Controller
         // List pegawai + hitung jumlah lokasi override aktif
         $employees = Employee::query()
             ->withCount([
-                'locations as override_locations_count' => fn ($q) => $q->wherePivot('is_active', true)
+                'locations as override_locations_count' => fn ($q) => $q->where('employee_locations.is_active', true)
             ])
             ->when($unitId, fn ($q) => $q->where('department_id', $unitId))
             ->when($search, function ($q) use ($search) {

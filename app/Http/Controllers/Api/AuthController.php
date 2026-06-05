@@ -14,6 +14,7 @@ class AuthController extends Controller
         $request->validate([
             'nip' => ['required'],
             'password' => ['required'],
+            'device_id' => ['required', 'string'], // Wajib dikirim oleh Mobile App
         ]);
 
         $user = User::where('nip', $request->nip)->first();
@@ -24,6 +25,28 @@ class AuthController extends Controller
             ], 401);
         }
 
+        // --- Logic: Device Binding ---
+        // Cek apakah user punya perangkat aktif
+        $activeDevice = $user->devices()->where('is_active', true)->first();
+
+        if (!$activeDevice) {
+            // Jika belum ada perangkat terdaftar, otomatis daftarkan perangkat ini
+            $user->devices()->create([
+                'device_id' => $request->device_id,
+                'registered_at' => now(),
+                'is_active' => true,
+            ]);
+        } else {
+            // Jika sudah ada, pastikan ID perangkat yang dikirim sama
+            if ($activeDevice->device_id !== $request->device_id) {
+                return response()->json([
+                    'message' => 'Akun Anda sudah tertaut dengan perangkat lain. Silakan hubungi admin untuk reset perangkat.',
+                    'error_code' => 'DEVICE_MISMATCH'
+                ], 403);
+            }
+        }
+        // --- End Logic ---
+
         // Optional: cek status user
         if (isset($user->status) && strtolower($user->status) !== 'aktif') {
             return response()->json([
@@ -32,6 +55,8 @@ class AuthController extends Controller
         }
 
         $token = $user->createToken('flutter-token')->plainTextToken;
+
+        $employee = \App\Models\Employee::where('nip', $user->nip)->first();
 
         return response()->json([
             'message' => 'Login berhasil',
@@ -45,6 +70,7 @@ class AuthController extends Controller
                 'role' => $user->role,
                 'unit_kerja' => $user->unit_kerja,
                 'status' => $user->status,
+                'tpp_allowance' => $employee ? $employee->tpp_allowance : 0,
             ],
         ], 200);
     }
@@ -52,6 +78,7 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         $user = $request->user();
+        $employee = \App\Models\Employee::where('nip', $user->nip)->first();
 
         return response()->json([
             'user' => [
@@ -63,6 +90,7 @@ class AuthController extends Controller
                 'role' => $user->role,
                 'unit_kerja' => $user->unit_kerja,
                 'status' => $user->status,
+                'tpp_allowance' => $employee ? $employee->tpp_allowance : 0,
             ],
         ], 200);
     }

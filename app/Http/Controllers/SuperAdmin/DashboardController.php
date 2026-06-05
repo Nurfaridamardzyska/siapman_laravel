@@ -7,6 +7,7 @@ use App\Models\Employee;
 use App\Models\User;
 use App\Models\MachineFault;
 use App\Models\Holiday;
+use App\Models\AbsenceDocument;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -39,6 +40,8 @@ class DashboardController extends Controller
         $hariLiburTerdekat = class_exists(Holiday::class)
             ? Holiday::whereDate('date', '>=', $tanggal)->orderBy('date')->first()
             : null;
+
+        $pendingApproval = AbsenceDocument::where('status', 'pending')->count();
 
         $machines = [];
         $mesinOnline = 0;
@@ -146,6 +149,13 @@ class DashboardController extends Controller
                 'subtitle' => "Tanggal {$tanggal}",
                 'route' => route('superadmin.laporan.presensi-harian', ['tanggal' => $tanggal]),
                 'accent' => 'indigo',
+            ],
+            [
+                'title' => 'Pending Approval',
+                'value' => $pendingApproval,
+                'subtitle' => 'Menunggu persetujuan',
+                'route' => route('superadmin.pegawai.ketidakhadiran'),
+                'accent' => 'rose',
             ],
         ];
 

@@ -28,11 +28,11 @@
         @method('PUT')
 
         <div>
-            <label class="text-sm text-gray-600">Kategori</label>
+            <label class="text-sm text-gray-600">Kategori Jadwal</label>
             <select name="category_id" class="w-full mt-1 border rounded-lg p-2" required>
-                @foreach($categories as $cat)
-                    <option value="{{ $cat->id }}" {{ (string)old('category_id', $item->category_id) === (string)$cat->id ? 'selected' : '' }}>
-                        {{ $cat->name }} (Prioritas: {{ $cat->priority }})
+                @foreach($categories as $category)
+                    <option value="{{ $category->id }}" {{ (string) old('category_id', $item->category_id) === (string) $category->id ? 'selected' : '' }}>
+                        {{ $category->name }}
                     </option>
                 @endforeach
             </select>

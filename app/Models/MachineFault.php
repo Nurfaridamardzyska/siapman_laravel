@@ -20,12 +20,12 @@ class MachineFault extends Model
         'incident_date' => 'date',
     ];
 
-    public function type()
+    public function machineFaultType()
     {
         return $this->belongsTo(MachineFaultType::class, 'machine_fault_type_id');
     }
 
-    public function status()
+    public function machineFaultStatus()
     {
         return $this->belongsTo(MachineFaultStatus::class, 'machine_fault_status_id');
     }

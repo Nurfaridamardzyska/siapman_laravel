@@ -20,8 +20,19 @@ class MachineFaultController extends Controller
         $types = MachineFaultType::orderBy('name')->get();
         $statuses = MachineFaultStatus::orderBy('name')->get();
 
+        // Statistik Dashboard
+        $stats = [
+            'total' => MachineFault::count(),
+            'pending' => MachineFault::whereHas('machineFaultStatus', function($s) {
+                $s->where('name', 'like', '%Pending%')->orWhere('name', 'like', '%Baru%');
+            })->count(),
+            'resolved' => MachineFault::whereHas('machineFaultStatus', function($s) {
+                $s->where('name', 'like', '%Selesai%')->orWhere('name', 'like', '%Resolved%');
+            })->count(),
+        ];
+
         $items = MachineFault::query()
-            ->with(['type', 'status'])
+            ->with(['machineFaultType', 'machineFaultStatus', 'employee.department'])
             ->when($q, function ($qq) use ($q) {
                 $qq->where('description', 'like', "%{$q}%");
             })
@@ -32,7 +43,7 @@ class MachineFaultController extends Controller
             ->withQueryString();
 
         return view('superadmin.absensi.lapor-kendala-absensi.index', compact(
-            'items', 'types', 'statuses', 'q', 'typeId', 'statusId'
+            'items', 'types', 'statuses', 'q', 'typeId', 'statusId', 'stats'
         ));
     }
 
@@ -63,7 +74,16 @@ class MachineFaultController extends Controller
             $data['evidence_path'] = $request->file('evidence')->store('machine_faults', 'public');
         }
 
-        MachineFault::create($data);
+
+        $fault = MachineFault::create($data);
+
+        // Kirim notifikasi ke user terkait jika ada employee_id
+        if ($fault->employee_id) {
+            $employee = $fault->employee;
+            if ($employee && $employee->user) {
+                $employee->user->notify(new \App\Notifications\MachineFaultReported($fault));
+            }
+        }
 
         return redirect()
             ->route('superadmin.absensi.lapor-kendala-absensi.index')

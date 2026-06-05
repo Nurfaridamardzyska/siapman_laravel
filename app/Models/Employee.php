@@ -13,8 +13,15 @@ use App\Models\AttendanceLog;
 use App\Models\AbsenceDocument;
 use App\Models\FaultReport;
 
+use App\Models\Scopes\DepartmentScope;
+
 class Employee extends Model
 {
+    protected static function booted()
+    {
+        static::addGlobalScope(new DepartmentScope);
+    }
+
     protected $fillable = [
         'nip',
         'name',
@@ -23,6 +30,7 @@ class Employee extends Model
         'department_id',
         'employee_type_id',
         'status',
+        'tpp_allowance',
     ];
 
     /*

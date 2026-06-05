@@ -17,7 +17,12 @@ class AttendanceWeeklyScheduleCategory extends Model
 
     protected $casts = [
         'start_date' => 'date',
-        'end_date'   => 'date',
-        'priority'   => 'integer',
+        'end_date' => 'date',
+        'priority' => 'integer',
     ];
+
+    public function schedules()
+    {
+        return $this->hasMany(AttendanceWeeklySchedule::class, 'category_id');
+    }
 }

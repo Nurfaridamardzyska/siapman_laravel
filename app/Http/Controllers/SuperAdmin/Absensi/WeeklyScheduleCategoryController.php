@@ -11,7 +11,7 @@ class WeeklyScheduleCategoryController extends Controller
     public function index()
     {
         $items = AttendanceWeeklyScheduleCategory::orderBy('priority')
-            ->orderByDesc('id')
+            ->orderBy('name')
             ->get();
 
         return view('superadmin.absensi.kategori-jadwal-kerja.index', compact('items'));
@@ -35,12 +35,13 @@ class WeeklyScheduleCategoryController extends Controller
 
         return redirect()
             ->route('superadmin.absensi.kategori-jadwal-kerja.index')
-            ->with('success', 'Kategori berhasil ditambahkan.');
+            ->with('success', 'Kategori jadwal kerja berhasil ditambahkan.');
     }
 
     public function edit(AttendanceWeeklyScheduleCategory $kategori_jadwal_kerja)
     {
         $item = $kategori_jadwal_kerja;
+
         return view('superadmin.absensi.kategori-jadwal-kerja.edit', compact('item'));
     }
 
@@ -57,13 +58,15 @@ class WeeklyScheduleCategoryController extends Controller
 
         return redirect()
             ->route('superadmin.absensi.kategori-jadwal-kerja.index')
-            ->with('success', 'Kategori berhasil diupdate.');
+            ->with('success', 'Kategori jadwal kerja berhasil diupdate.');
     }
 
     public function destroy(AttendanceWeeklyScheduleCategory $kategori_jadwal_kerja)
     {
         $kategori_jadwal_kerja->delete();
 
-        return back()->with('success', 'Kategori berhasil dihapus.');
+        return redirect()
+            ->route('superadmin.absensi.kategori-jadwal-kerja.index')
+            ->with('success', 'Kategori jadwal kerja berhasil dihapus.');
     }
 }

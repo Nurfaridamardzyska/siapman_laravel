@@ -28,7 +28,9 @@ class DocumentTypeController extends Controller
             'code'=>'nullable',
             'description'=>'nullable',
             'category'=>'nullable',
+            'color'=>'nullable',
             'requires_approval'=>'nullable',
+            'is_required'=>'nullable',
             'is_active'=>'required'
         ]);
 
@@ -43,14 +45,21 @@ class DocumentTypeController extends Controller
     {
         return view(
             'superadmin.master.tipe-dokumen.edit',
-            compact('tipe_dokumen')
+            ['item' => $tipe_dokumen]
         );
     }
 
     public function update(Request $request, DocumentType $tipe_dokumen)
     {
         $data = $request->validate([
-            'name'=>'required'
+            'name'=>'required',
+            'code'=>'nullable',
+            'description'=>'nullable',
+            'category'=>'nullable',
+            'color'=>'nullable',
+            'requires_approval'=>'nullable',
+            'is_required'=>'nullable',
+            'is_active'=>'required'
         ]);
 
         $tipe_dokumen->update($data);

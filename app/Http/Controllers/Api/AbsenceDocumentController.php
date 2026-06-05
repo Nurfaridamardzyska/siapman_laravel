@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\AbsenceDocument;
+use App\Models\User;
 use App\Models\Employee;
+use App\Models\AbsenceDocument;
+use App\Notifications\AbsenceRequestNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Notification;
 
 class AbsenceDocumentController extends Controller
 {
@@ -35,12 +38,18 @@ class AbsenceDocumentController extends Controller
             ->orderByDesc('id')
             ->get();
 
+        // Fetch all active document types for lookup
+        $docTypes = \App\Models\DocumentType::all()->keyBy('name');
+
         return response()->json([
             'message' => 'Dokumen ketidakhadiran berhasil diambil',
-            'data' => $documents->map(function ($item) {
+            'data' => $documents->map(function ($item) use ($docTypes) {
+                $typeInfo = $docTypes->get($item->document_type);
                 return [
                     'id' => $item->id,
                     'document_type' => $item->document_type,
+                    'color' => $typeInfo ? $typeInfo->color : '#3b82f6',
+                    'is_required' => $typeInfo ? (bool)$typeInfo->is_required : true, // Default true for safety
                     'title' => $item->title,
                     'file_path' => $item->file_path,
                     'file_url' => $item->file_path ? asset('storage/' . $item->file_path) : null,
@@ -48,6 +57,9 @@ class AbsenceDocumentController extends Controller
                     'end_date' => optional($item->end_date)->format('Y-m-d'),
                     'status' => $item->status,
                     'approved_by' => $item->approved_by,
+                    'rejected_by' => $item->rejected_by,
+                    'decision_notes' => $item->decision_notes,
+                    'decided_at' => optional($item->decided_at)->format('Y-m-d H:i:s'),
                     'notes' => $item->notes,
                     'created_at' => optional($item->created_at)->format('Y-m-d H:i:s'),
                 ];
@@ -79,8 +91,23 @@ class AbsenceDocumentController extends Controller
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'notes' => 'nullable|string',
-            'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
+
+        $startDate = $request->date('start_date');
+        $endDate = $request->date('end_date');
+
+        $hasOverlap = AbsenceDocument::where('employee_id', $employee->id)
+            ->where('status', '!=', 'rejected')
+            ->whereDate('start_date', '<=', $endDate)
+            ->whereDate('end_date', '>=', $startDate)
+            ->exists();
+
+        if ($hasOverlap) {
+            return response()->json([
+                'message' => 'Pengajuan pada rentang tanggal tersebut sudah ada dan masih aktif.',
+            ], 422);
+        }
 
         $filePath = null;
 
@@ -97,8 +124,34 @@ class AbsenceDocumentController extends Controller
             'end_date' => $request->end_date,
             'status' => 'pending',
             'approved_by' => null,
+            'rejected_by' => null,
+            'decision_notes' => null,
+            'decided_at' => null,
             'notes' => $request->notes,
         ]);
+
+        // --- TRIGGER NOTIFIKASI ---
+        try {
+            // Ambil semua Superadmin
+            $superAdmins = User::where('role', 'superadmin')->get();
+            
+            // Ambil Admin OPD yang sama dengan pegawai
+            $departmentAdmins = collect();
+            if ($employee->department_id) {
+                $departmentAdmins = User::where('role', 'admin')
+                    ->where('department_id', $employee->department_id)
+                    ->get();
+            }
+
+            $recipients = $superAdmins->concat($departmentAdmins)->unique('id');
+            
+            if ($recipients->isNotEmpty()) {
+                Notification::send($recipients, new AbsenceRequestNotification($document, $employee));
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Gagal mengirim notifikasi: ' . $e->getMessage());
+        }
+        // --- END TRIGGER ---
 
         return response()->json([
             'message' => 'Dokumen ketidakhadiran berhasil dikirim',
@@ -112,6 +165,9 @@ class AbsenceDocumentController extends Controller
                 'end_date' => optional($document->end_date)->format('Y-m-d'),
                 'status' => $document->status,
                 'approved_by' => $document->approved_by,
+                'rejected_by' => $document->rejected_by,
+                'decision_notes' => $document->decision_notes,
+                'decided_at' => optional($document->decided_at)->format('Y-m-d H:i:s'),
                 'notes' => $document->notes,
             ],
         ], 201);
@@ -157,6 +213,9 @@ class AbsenceDocumentController extends Controller
                 'end_date' => optional($document->end_date)->format('Y-m-d'),
                 'status' => $document->status,
                 'approved_by' => $document->approved_by,
+                'rejected_by' => $document->rejected_by,
+                'decision_notes' => $document->decision_notes,
+                'decided_at' => optional($document->decided_at)->format('Y-m-d H:i:s'),
                 'notes' => $document->notes,
                 'created_at' => optional($document->created_at)->format('Y-m-d H:i:s'),
             ],

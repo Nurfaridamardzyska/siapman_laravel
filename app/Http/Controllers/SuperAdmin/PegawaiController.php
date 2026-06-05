@@ -6,15 +6,18 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Employee;
 use App\Models\EmployeeFace;
-use App\Models\EmployeeWorkLeave;
-use App\Models\MachineFault;
+use App\Models\AbsenceDocument;
 use App\Models\User;
 use App\Models\UserDevice;
 use App\Models\UserLog;
+use App\Models\Position;
+use App\Models\Department;
+use App\Models\EmployeeType;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PegawaiController extends Controller
@@ -36,7 +39,11 @@ class PegawaiController extends Controller
 
     public function create()
     {
-        return view('superadmin.pegawai.create');
+        $positions = Position::orderBy('name')->get();
+        $departments = Department::orderBy('name')->get();
+        $employeeTypes = EmployeeType::orderBy('priority')->get();
+
+        return view('superadmin.pegawai.create', compact('positions', 'departments', 'employeeTypes'));
     }
 
     public function store(Request $request)
@@ -44,12 +51,20 @@ class PegawaiController extends Controller
         $validated = $request->validate([
             'nip' => 'required|string|max:50|unique:employees,nip',
             'name' => 'required|string|max:150',
+            'position_id' => 'nullable|exists:positions,id',
+            'department_id' => 'nullable|exists:departments,id',
+            'employee_type_id' => 'nullable|exists:employee_types,id',
+            'tpp_allowance' => 'nullable|numeric|min:0',
             'status' => 'nullable|string|max:50',
         ]);
 
         Employee::create([
             'nip' => $validated['nip'],
             'name' => $validated['name'],
+            'position_id' => $validated['position_id'] ?? null,
+            'department_id' => $validated['department_id'] ?? null,
+            'employee_type_id' => $validated['employee_type_id'] ?? null,
+            'tpp_allowance' => $validated['tpp_allowance'] ?? 0,
             'status' => $validated['status'] ?? 'Aktif',
         ]);
 
@@ -65,7 +80,11 @@ class PegawaiController extends Controller
 
     public function edit(Employee $pegawai)
     {
-        return view('superadmin.pegawai.edit', compact('pegawai'));
+        $positions = Position::orderBy('name')->get();
+        $departments = Department::orderBy('name')->get();
+        $employeeTypes = EmployeeType::orderBy('priority')->get();
+
+        return view('superadmin.pegawai.edit', compact('pegawai', 'positions', 'departments', 'employeeTypes'));
     }
 
     public function update(Request $request, Employee $pegawai)
@@ -73,12 +92,20 @@ class PegawaiController extends Controller
         $validated = $request->validate([
             'nip' => 'required|string|max:50|unique:employees,nip,' . $pegawai->id,
             'name' => 'required|string|max:150',
+            'position_id' => 'nullable|exists:positions,id',
+            'department_id' => 'nullable|exists:departments,id',
+            'employee_type_id' => 'nullable|exists:employee_types,id',
+            'tpp_allowance' => 'nullable|numeric|min:0',
             'status' => 'nullable|string|max:50',
         ]);
 
         $pegawai->update([
             'nip' => $validated['nip'],
             'name' => $validated['name'],
+            'position_id' => $validated['position_id'] ?? null,
+            'department_id' => $validated['department_id'] ?? null,
+            'employee_type_id' => $validated['employee_type_id'] ?? null,
+            'tpp_allowance' => $validated['tpp_allowance'] ?? 0,
             'status' => $validated['status'] ?? 'Aktif',
         ]);
 
@@ -110,6 +137,14 @@ class PegawaiController extends Controller
 
         if ($request->status === 'not_registered') {
             $query->doesntHave('faces');
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('nip', 'like', '%' . $search . '%');
+            });
         }
 
         $employees = $query->latest()->get();
@@ -245,38 +280,46 @@ class PegawaiController extends Controller
 
     public function ketidakhadiran()
     {
-        $leaves = EmployeeWorkLeave::with('employee')->latest()->get();
-        $faults = MachineFault::with('employee')->latest()->get();
+        $documents = AbsenceDocument::with('employee')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get();
 
-        return view('superadmin.pegawai.ketidakhadiran', compact('leaves', 'faults'));
+        $summary = [
+            'pending' => $documents->where('status', 'pending')->count(),
+            'approved' => $documents->where('status', 'approved')->count(),
+            'rejected' => $documents->where('status', 'rejected')->count(),
+        ];
+
+        return view('superadmin.pegawai.ketidakhadiran', compact('documents', 'summary'));
     }
 
-    public function updateLeaveStatus(Request $request, EmployeeWorkLeave $leave)
+    public function updateDocumentStatus(Request $request, AbsenceDocument $document)
     {
         $validated = $request->validate([
-            'status' => 'nullable|string|max:50',
+            'status' => 'required|in:pending,approved,rejected',
+            'decision_notes' => [
+                Rule::requiredIf(fn () => $request->input('status') === 'rejected'),
+                'nullable',
+                'string',
+                'max:2000',
+            ],
         ]);
 
-        $leave->update([
-            'status' => $validated['status'] ?? 'Disetujui',
-            'verified_at' => now(),
+        $actorName = auth()->user()->name ?? 'Superadmin';
+        $status = $validated['status'];
+
+        $document->update([
+            'status' => $status,
+            'approved_by' => $status === 'approved' ? $actorName : null,
+            'rejected_by' => $status === 'rejected' ? $actorName : null,
+            'decision_notes' => $status === 'pending'
+                ? null
+                : ($validated['decision_notes'] ?? null),
+            'decided_at' => $status === 'pending' ? null : now(),
         ]);
 
-        return back()->with('success', 'Status cuti berhasil diperbarui');
-    }
-
-    public function updateFaultStatus(Request $request, MachineFault $fault)
-    {
-        $validated = $request->validate([
-            'status' => 'nullable|string|max:50',
-        ]);
-
-        $fault->update([
-            'status' => $validated['status'] ?? 'Disetujui',
-            'verified_at' => now(),
-        ]);
-
-        return back()->with('success', 'Status kendala berhasil diperbarui');
+        return back()->with('success', 'Status dokumen ketidakhadiran berhasil diperbarui');
     }
 
     // ======================
@@ -317,7 +360,8 @@ class PegawaiController extends Controller
 
     public function createPengguna()
     {
-        return view('superadmin.pengguna.create');
+        $departments = Department::orderBy('name')->get();
+        return view('superadmin.pengguna.create', compact('departments'));
     }
 
     public function storePengguna(Request $request)
@@ -328,10 +372,11 @@ class PegawaiController extends Controller
             'email' => 'required|email|max:150|unique:users,email',
             'password' => 'required|string|min:6|confirmed',
             'role' => 'required|string|max:50',
-            'nip' => 'nullable|string|max:50',
-            'unit_kerja' => 'nullable|string|max:150',
+            'nip' => 'required|string|max:50',
+            'unit_kerja' => 'required|string|max:150',
+            'department_id' => 'nullable|exists:departments,id',
             'status' => 'nullable|in:Aktif,Nonaktif',
-            'face_image' => 'nullable|string', // Base64 string
+            'face_image' => 'required|string', // Base64 string
         ]);
 
         $user = User::create([
@@ -342,6 +387,7 @@ class PegawaiController extends Controller
             'nip' => $validated['nip'] ?? null,
             'role' => $validated['role'],
             'unit_kerja' => $validated['unit_kerja'] ?? null,
+            'department_id' => $validated['department_id'] ?? null,
             'status' => $validated['status'] ?? 'Aktif',
         ]);
 
@@ -429,7 +475,8 @@ class PegawaiController extends Controller
 
     public function editPengguna(User $user)
     {
-        return view('superadmin.pengguna.edit', compact('user'));
+        $departments = Department::orderBy('name')->get();
+        return view('superadmin.pengguna.edit', compact('user', 'departments'));
     }
 
     public function updatePengguna(Request $request, User $user)
@@ -439,8 +486,9 @@ class PegawaiController extends Controller
             'name' => 'required|string|max:150',
             'email' => 'required|email|max:150|unique:users,email,' . $user->id,
             'role' => 'required|string|max:50',
-            'nip' => 'nullable|string|max:50',
-            'unit_kerja' => 'nullable|string|max:150',
+            'nip' => 'required|string|max:50',
+            'unit_kerja' => 'required|string|max:150',
+            'department_id' => 'nullable|exists:departments,id',
             'status' => 'nullable|in:Aktif,Nonaktif',
             'password' => 'nullable|string|min:6|confirmed',
             'face_image' => 'nullable|string', // Base64 string
@@ -453,6 +501,7 @@ class PegawaiController extends Controller
             'role' => $validated['role'],
             'nip' => $validated['nip'] ?? null,
             'unit_kerja' => $validated['unit_kerja'] ?? null,
+            'department_id' => $validated['department_id'] ?? null,
             'status' => $validated['status'] ?? $user->status,
         ];
 

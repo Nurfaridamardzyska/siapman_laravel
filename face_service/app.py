@@ -689,9 +689,6 @@ def _process_frame_route(frame):
 
 @app.route('/capture')
 def capture():
-    if not ALLOW_SERVER_CAMERA:
-        return jsonify({"message": "Endpoint capture kamera server dinonaktifkan"}), 403
-
     with _state_lock:
         if _last_valid_frame is None:
             return jsonify({"message": "Tidak ada frame valid"}), 404

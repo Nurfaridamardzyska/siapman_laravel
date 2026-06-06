@@ -242,8 +242,7 @@
                     </div>
 
                     <button type="submit" id="btn-submit-form"
-                            class="w-full rounded-2xl bg-blue-600 py-4 text-sm font-black text-white shadow-xl shadow-blue-200 transition-all hover:bg-blue-700 active:scale-95 flex items-center justify-center gap-3 disabled:bg-slate-300 disabled:shadow-none"
-                            disabled>
+                            class="w-full rounded-2xl bg-blue-600 py-4 text-sm font-black text-white shadow-xl shadow-blue-200 transition-all hover:bg-blue-700 active:scale-95 flex items-center justify-center gap-3 disabled:bg-slate-300 disabled:shadow-none">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
                         UPDATE PENGGUNA
                     </button>
@@ -326,9 +325,7 @@
 
             // Check if secure context (Required for camera)
             if (!window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-                alert("ERR: Browser memblokir kamera karena URL tidak dianggap aman. 
-
-Silakan gunakan http://127.0.0.1:8000 atau http://localhost:8000 sebagai gantinya.");
+                alert(`ERR: Browser memblokir kamera karena URL tidak dianggap aman. \n\nSilakan gunakan http://127.0.0.1:8000 atau http://localhost:8000 sebagai gantinya.`);
                 return;
             }
 

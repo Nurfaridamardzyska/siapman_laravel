@@ -144,13 +144,36 @@
                 <!-- Right: Face Scan -->
                 <div class="space-y-6">
                     <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg p-6 flex flex-col items-center">
-                        <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 w-full text-center">Biometric Identity</h2>
-                        
                         @php
                             $activeFace = $user->employee ? $user->employee->activeFace : null;
                         @endphp
+                        <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 w-full text-center">Interactive Face Verification</h2>
+                        
+                        <!-- Step Indicator -->
+                        <div id="step-indicator" class="flex items-center justify-center gap-4 mb-6 hidden">
+                            <div id="step-1" class="h-8 w-8 rounded-full border-2 border-slate-200 flex items-center justify-center text-xs font-bold text-slate-400 transition-all duration-300">1</div>
+                            <div class="h-0.5 w-6 bg-slate-200" id="line-1"></div>
+                            <div id="step-2" class="h-8 w-8 rounded-full border-2 border-slate-200 flex items-center justify-center text-xs font-bold text-slate-400 transition-all duration-300">2</div>
+                            <div class="h-0.5 w-6 bg-slate-200" id="line-2"></div>
+                            <div id="step-3" class="h-8 w-8 rounded-full border-2 border-slate-200 flex items-center justify-center text-xs font-bold text-slate-400 transition-all duration-300">3</div>
+                        </div>
 
-                        <div id="face-scan-container" class="relative group w-full aspect-square max-w-[240px] overflow-hidden rounded-full bg-slate-100 border-4 border-slate-50 shadow-inner ring-8 ring-slate-50 transition-all duration-500">
+                        <!-- Instruction Alert -->
+                        <div id="instruction-card" class="w-full p-4 rounded-2xl bg-blue-50 border border-blue-100 mb-6 hidden animate-in fade-in zoom-in">
+                            <p id="instruction-text" class="text-xs font-black text-blue-700 text-center uppercase tracking-wider"></p>
+                        </div>
+
+                        <!-- Camera Selector (Moved outside) -->
+                        <div id="camera-selector-wrapper" class="w-full mb-4">
+                            <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Pilih Sumber Kamera:</label>
+                            <select id="camera-select" class="w-full bg-slate-100 text-slate-800 text-xs px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition appearance-none">
+                                <option value="">Mendeteksi Kamera...</option>
+                            </select>
+                        </div>
+                        
+                        <div id="face-scan-container" class="relative group w-full aspect-square max-w-[280px] overflow-hidden rounded-full bg-slate-100 border-4 border-slate-50 shadow-inner ring-8 ring-slate-50 transition-all duration-500">
+                            
+                            <!-- Placeholder -->
                             
                             @if($activeFace)
                             <!-- Existing Face -->
@@ -158,54 +181,69 @@
                                 <img src="{{ asset('storage/' . $activeFace->image_path) }}" class="h-full w-full object-cover grayscale-[30%]">
                                 <div class="absolute inset-0 bg-indigo-900/10 mix-blend-multiply"></div>
                                 <div class="absolute bottom-4 left-0 right-0 flex justify-center">
-                                    <button type="button" id="btn-re-scan" class="bg-white/90 backdrop-blur-md px-4 py-1.5 rounded-full text-[9px] font-black text-indigo-700 shadow-xl hover:bg-white transition active:scale-95 uppercase tracking-widest">UPDATE PHOTO</button>
+                                    <button type="button" id="btn-re-scan" class="bg-white/90 backdrop-blur-md px-4 py-1.5 rounded-full text-[9px] font-black text-indigo-700 shadow-xl hover:bg-white transition active:scale-95 uppercase tracking-widest">PERBARUI FOTO</button>
                                 </div>
                             </div>
                             @endif
 
-                            <!-- Placeholder -->
-                            <div id="camera-placeholder" class="{{ $activeFace ? 'hidden' : '' }} h-full flex flex-col items-center justify-center p-8 text-center">
-                                <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-md text-blue-600 mb-4">
-                                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
+                            <div id="camera-placeholder" class="{{ $activeFace ? 'hidden' : '' }} h-full flex flex-col items-center justify-center p-8 text-center bg-slate-50">
+                                <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-md text-slate-800 mb-4 transition group-hover:scale-110">
+                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A10.003 10.003 0 0012 3m0 18a10.003 10.003 0 01-8.212-4.33l-.054-.09m15.824 2.13a10.003 10.003 0 001.138-10.51M11.35 14.12L12 15l1.65-1.88M12 15V3"></path></svg>
                                 </div>
-                                <h3 class="text-xs font-black text-slate-800 tracking-tight">No Active Model</h3>
-                                <button type="button" id="btn-start-camera" class="mt-4 w-full rounded-xl bg-slate-800 py-2.5 text-xs font-bold text-white hover:bg-slate-900 transition active:scale-95">RE-SCAN</button>
+                                <h3 class="text-sm font-black text-slate-800 tracking-tight">Kamera Diperlukan</h3>
+                                <p class="text-[10px] font-medium text-slate-400 mt-1 leading-relaxed">Wajib verifikasi keaktifan wajah untuk pendaftaran.</p>
+                                <button type="button" id="btn-start-camera" class="mt-6 w-full rounded-xl bg-slate-800 py-2.5 text-xs font-bold text-white shadow-xl shadow-slate-200 hover:bg-slate-900 transition active:scale-95">Mulai Verifikasi</button>
                             </div>
 
-                            <!-- Active Video -->
-                            <div id="camera-active" class="hidden h-full">
-                                <video id="video" class="h-full w-full object-cover scale-x-[-1]" autoplay playsinline></video>
-                                <div class="absolute bottom-4 left-0 right-0 flex justify-center">
-                                     <button type="button" id="btn-capture" class="h-12 w-12 rounded-full bg-white border-2 border-slate-200 shadow-xl flex items-center justify-center text-slate-800 active:scale-90">
-                                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path></svg>
-                                     </button>
+                            <!-- Browser Webcam Video (Hidden) -->
+                            <video id="webcam-video" autoplay playsinline muted class="hidden"></video>
+                            <canvas id="webcam-canvas" class="hidden"></canvas>
+
+                            <!-- MJPEG Feed from Python Backend (Now used for annotated display) -->
+                            <div id="camera-active" class="hidden h-full w-full relative">
+                                <img id="stream-img" src="" class="h-full w-full object-cover scale-x-[-1] block">
+                                <div class="absolute inset-0 border-[12px] border-slate-900/10 pointer-events-none rounded-full"></div>
+                                <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                    <div class="w-[85%] h-[85%] border-2 border-dashed border-white/50 rounded-full"></div>
                                 </div>
-                                <button type="button" id="btn-stop-camera" class="absolute top-3 right-6 text-white text-xs font-bold">CANCEL</button>
+                                <button type="button" id="btn-stop-camera" class="absolute top-4 right-4 text-white drop-shadow-md transition hover:scale-110">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
                             </div>
 
-                            <!-- Preview -->
-                            <div id="camera-preview" class="hidden h-full">
+                            <!-- Preview Successful Capture -->
+                            <div id="camera-preview" class="hidden h-full relative">
                                 <img id="face-preview-img" src="" class="h-full w-full object-cover">
-                                <div class="absolute bottom-4 left-0 right-0 flex flex-col items-center gap-1">
-                                    <span class="bg-blue-600 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded-full">NEW SCAN READY</span>
-                                    <button type="button" id="btn-retake" class="text-white drop-shadow-md text-[9px] font-black uppercase tracking-widest">RETAKE</button>
+                                <div class="absolute inset-0 bg-emerald-500/10 mix-blend-overlay"></div>
+                                <div class="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-2">
+                                    <span class="bg-emerald-500 text-white text-[9px] font-black uppercase px-3 py-1 rounded-full shadow-lg">VERIFIKASI BERHASIL</span>
+                                    <button type="button" id="btn-retake" class="text-white drop-shadow-md text-[10px] font-black hover:underline tracking-widest">VERIFIKASI ULANG</button>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="mt-8 grid grid-cols-1 w-full gap-2 opacity-60">
-                             <div class="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                                <svg class="w-4 h-4 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                <p class="text-[9px] font-bold text-slate-500 leading-tight uppercase tracking-widest">Scan ulang jika pegawai mengalami kendala saat validasi wajah di aplikasi.</p>
-                             </div>
+                        <div class="mt-6 space-y-3">
+                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Panduan Asisten:</p>
+                            <div class="flex items-start gap-2 text-[10px] text-slate-500 font-bold leading-tight">
+                                <i class="fas fa-lightbulb text-amber-500 mt-0.5"></i>
+                                <span>Pencahayaan cukup & hindari cahaya belakang.</span>
+                            </div>
+                            <div class="flex items-start gap-2 text-[10px] text-slate-500 font-bold leading-tight">
+                                <i class="fas fa-user-slash text-blue-500 mt-0.5"></i>
+                                <span>Lepas masker, kacamata, atau penutup wajah.</span>
+                            </div>
+                            <div class="flex items-start gap-2 text-[10px] text-slate-500 font-bold leading-tight">
+                                <i class="fas fa-shield-alt text-emerald-500 mt-0.5"></i>
+                                <span>Hanya satu wajah & gunakan wajah asli Anda.</span>
+                            </div>
                         </div>
                         
-                        <canvas id="canvas" class="hidden"></canvas>
                         <input type="hidden" name="face_image" id="face-image-input">
                     </div>
 
-                    <button type="submit" 
-                            class="w-full rounded-2xl bg-slate-800 py-4 text-xs font-black text-white shadow-xl shadow-slate-200 transition-all hover:bg-slate-900 active:scale-95 flex items-center justify-center gap-3 tracking-[0.2em]">
+                    <button type="submit" id="btn-submit-form"
+                            class="w-full rounded-2xl bg-blue-600 py-4 text-sm font-black text-white shadow-xl shadow-blue-200 transition-all hover:bg-blue-700 active:scale-95 flex items-center justify-center gap-3 disabled:bg-slate-300 disabled:shadow-none">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
                         UPDATE PENGGUNA
                     </button>
                 </div>
@@ -215,75 +253,296 @@
 </div>
 
 <script>
+    const FACE_SERVICE_URL = "http://188.166.184.53/face-api";
+
     document.addEventListener('DOMContentLoaded', function() {
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const facePreviewImg = document.getElementById('face-preview-img');
+        const form = document.querySelector('form');
         const faceImageInput = document.getElementById('face-image-input');
-        const scanContainer = document.getElementById('face-scan-container');
+        const streamImg = document.getElementById('stream-img');
+        const facePreviewImg = document.getElementById('face-preview-img');
         
         const placeholder = document.getElementById('camera-placeholder');
         const activeCamera = document.getElementById('camera-active');
         const previewUI = document.getElementById('camera-preview');
+        const stepIndicator = document.getElementById('step-indicator');
+        const instructionCard = document.getElementById('instruction-card');
+        const instructionText = document.getElementById('instruction-text');
+        const btnSubmit = document.getElementById('btn-submit-form');
         const existingFaceUI = document.getElementById('existing-face-ui');
-        
-        const btnStart = document.getElementById('btn-start-camera');
-        const btnStop = document.getElementById('btn-stop-camera');
-        const btnCapture = document.getElementById('btn-capture');
-        const btnRetake = document.getElementById('btn-retake');
         const btnReScan = document.getElementById('btn-re-scan');
         
-        let stream = null;
-
         if(btnReScan) {
             btnReScan.addEventListener('click', () => {
                 existingFaceUI.classList.add('hidden');
                 placeholder.classList.remove('hidden');
             });
         }
+        
+        const btnStart = document.getElementById('btn-start-camera');
+        const btnStop = document.getElementById('btn-stop-camera');
+        const btnRetake = document.getElementById('btn-retake');
+        
+        const step1 = document.getElementById('step-1');
+        const step2 = document.getElementById('step-2');
+        const step3 = document.getElementById('step-3');
+        const line1 = document.getElementById('line-1');
+        const line2 = document.getElementById('line-2');
 
-        btnStart.addEventListener('click', async function() {
+        const video = document.getElementById('webcam-video');
+        const canvas = document.getElementById('webcam-canvas');
+        const ctx = canvas.getContext('2d');
+
+        let isRunning = false;
+        let stream = null;
+        let frameInterval = null;
+        let currentDeviceId = null;
+        const cameraSelect = document.getElementById('camera-select');
+
+        async function getCameras() {
             try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-                video.srcObject = stream;
-                placeholder.classList.add('hidden');
-                activeCamera.classList.remove('hidden');
-            } catch (err) { alert("ERROR_CAMERA_ACCESS"); }
-        });
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                
+                cameraSelect.innerHTML = '';
+                
+                if (videoDevices.length === 0) {
+                    const option = document.createElement('option');
+                    option.text = "Kamera tidak terdeteksi";
+                    cameraSelect.appendChild(option);
+                    return;
+                }
 
-        function stopCamera() {
-            if (stream) { stream.getTracks().forEach(track => track.stop()); }
-            activeCamera.classList.add('hidden');
+                videoDevices.forEach((device, index) => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.text = device.label || `Kamera ${index + 1} (Beri Akses Dahulu)`;
+                    if (currentDeviceId === device.deviceId) option.selected = true;
+                    cameraSelect.appendChild(option);
+                });
+
+                document.getElementById('camera-selector-wrapper').classList.remove('hidden');
+                
+            } catch (err) {
+                console.error("Gagal melist kamera:", err);
+            }
         }
 
-        btnStop.addEventListener('click', () => {
-            stopCamera();
-            if(existingFaceUI) {
+        // Pancing browser untuk meminta izin & membaca kamera saat awal
+        getCameras();
+
+        async function startVerification() {
+            if (isRunning) return;
+
+            // Check if secure context (Required for camera)
+            if (!window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                alert(`ERR: Browser memblokir kamera karena URL tidak dianggap aman. \n\nSilakan gunakan http://127.0.0.1:8000 atau http://localhost:8000 sebagai gantinya.`);
+                return;
+            }
+
+            try {
+                await getCameras();
+                
+                const constraints = { 
+                    video: { 
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        deviceId: currentDeviceId ? { exact: currentDeviceId } : undefined
+                    } 
+                };
+
+                // If no deviceId yet, default to user facing or the first one
+                if (!currentDeviceId) {
+                    constraints.video.facingMode = "user";
+                }
+
+                // Request Webcam
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+                await video.play();
+                
+                // Reset backend state
+                await fetch(`${FACE_SERVICE_URL}/reset`, { method: 'POST' });
+                
                 placeholder.classList.add('hidden');
+                activeCamera.classList.remove('hidden');
+                activeCamera.style.display = 'block'; // Force display
+                instructionCard.classList.remove('hidden');
+                stepIndicator.classList.remove('hidden'); // Show sequence
+                
+                isRunning = true;
+                processFrame();
+            } catch (err) {
+                console.error(err);
+                alert("ERR: Gagal mengakses webcam atau backend tidak aktif. Pastikan HTTPS aktif jika di remote.");
+            }
+        }
+
+        async function processFrame() {
+            if (!isRunning) return;
+
+            // Draw current video frame to canvas
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Convert to Blob and send to backend
+                canvas.toBlob(async (blob) => {
+                    if (!blob) return;
+                    
+                    const formData = new FormData();
+                    formData.append('face_image', blob, 'frame.jpg');
+                    
+                    try {
+                        const response = await fetch(`${FACE_SERVICE_URL}/frame-upload`, {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const data = await response.json();
+                        
+                        // Update UI with annotated image and status
+                        if (data.image) streamImg.src = data.image;
+                        updateUI(data);
+
+                        if (data.valid) {
+                            isRunning = false;
+                            handleSuccess();
+                        } else {
+                            if (isRunning) frameInterval = setTimeout(processFrame, 100);
+                        }
+                    } catch (err) {
+                        console.error("Frame processing failed", err);
+                        if (isRunning) frameInterval = setTimeout(processFrame, 500);
+                    }
+                }, 'image/jpeg', 0.6);
+            } else {
+                if (isRunning) frameInterval = setTimeout(processFrame, 100);
+            }
+        }
+
+        function updateUI(data) {
+            const status = data.status;
+            const warning = data.warning;
+
+            // Update Instruction Text
+            let msg = status;
+            if (status.includes("Idle")) msg = "MOHON TUNGGU...";
+            if (status.includes("Mohon diam") || status.includes("Stabilisasi")) msg = "DIAM (TAHAN WAJAH)";
+            if (status.includes("berkedip")) msg = "SILAKAN BERKEDIP";
+            if (status.includes("geleng")) msg = "GELENGKAN KEPALA (KIRI/KANAN)";
+            if (status.includes("mulut")) msg = "BUKA MULUT ANDA";
+            if (status.includes("HANYA BOLEH") || status.includes("satu wajah")) msg = "HANYA SATU WAJAH DIIZINKAN!";
+            if (status.includes("hilang")) msg = "WAJAH TIDAK TERLIHAT!";
+            if (data.valid) msg = "VERIFIKASI BERHASIL!";
+
+            // Update Step Sequence Visuals
+            const step = data.step !== undefined ? data.step : 0;
+            const valid = data.valid;
+
+            // Step 1: Stabilize
+            if (step >= 0 || valid) {
+                step1.className = "h-8 w-8 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all duration-300 bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200";
+            } else {
+                step1.className = "h-8 w-8 rounded-full border-2 border-slate-200 flex items-center justify-center text-xs font-bold text-slate-400 transition-all duration-300";
+            }
+
+            // Step 2: Challenge 1
+            if (step >= 1 || valid) {
+                line1.className = "h-0.5 w-6 transition-all duration-300 bg-blue-600";
+                step2.className = "h-8 w-8 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all duration-300 bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200";
+            } else {
+                line1.className = "h-0.5 w-6 bg-slate-200 transition-all duration-300";
+                step2.className = "h-8 w-8 rounded-full border-2 border-slate-200 flex items-center justify-center text-xs font-bold text-slate-400 transition-all duration-300";
+            }
+
+            // Step 3: Challenge 2
+            if (step >= 2 || valid) {
+                line2.className = "h-0.5 w-6 transition-all duration-300 bg-blue-600";
+                step3.className = "h-8 w-8 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all duration-300 bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200";
+            } else {
+                line2.className = "h-0.5 w-6 bg-slate-200 transition-all duration-300";
+                step3.className = "h-8 w-8 rounded-full border-2 border-slate-200 flex items-center justify-center text-xs font-bold text-slate-400 transition-all duration-300";
+            }
+
+            if (warning && !data.valid) {
+                instructionCard.classList.remove('bg-blue-50', 'border-blue-100');
+                instructionCard.classList.add('bg-amber-50', 'border-amber-200');
+                instructionText.classList.remove('text-blue-700');
+                instructionText.classList.add('text-amber-700');
+                instructionText.innerHTML = `<span class="block mb-1 text-[9px] opacity-70 underline uppercase">Peringatan:</span>${warning}<hr class="my-2 border-amber-200"><span class="block mt-1 text-blue-800">${msg}</span>`;
+            } else {
+                instructionCard.classList.add('bg-blue-50', 'border-blue-100');
+                instructionCard.classList.remove('bg-amber-50', 'border-amber-200');
+                instructionText.classList.add('text-blue-700');
+                instructionText.classList.remove('text-amber-700');
+                instructionText.innerText = msg;
+            }
+        }
+
+        async function handleSuccess() {
+            // Stop webcam stream
+            if (stream) stream.getTracks().forEach(track => track.stop());
+            
+            try {
+                // Ambil foto langsung dari canvas lokal browser (bersih tanpa kotak hijau)
+                const localImage = canvas.toDataURL('image/jpeg', 0.8);
+                
+                if (localImage) {
+                    faceImageInput.value = localImage;
+                    facePreviewImg.src = localImage;
+                    
+                    activeCamera.classList.add('hidden');
+                    previewUI.classList.remove('hidden');
+                    instructionCard.classList.add('hidden');
+                    stepIndicator.classList.add('hidden');
+                    btnSubmit.disabled = false;
+                }
+            } catch (err) {
+                console.error("Capture failed", err);
+                alert("Gagal memproses foto lokal. Silakan coba lagi.");
+            }
+        }
+
+        function stopVerification() {
+            isRunning = false;
+            if (frameInterval) clearTimeout(frameInterval);
+            if (stream) stream.getTracks().forEach(track => track.stop());
+            
+            streamImg.src = "";
+            activeCamera.classList.add('hidden');
+            if(existingFaceUI) {
                 existingFaceUI.classList.remove('hidden');
             } else {
                 placeholder.classList.remove('hidden');
             }
-        });
+            instructionCard.classList.add('hidden');
+            stepIndicator.classList.add('hidden'); // Hide sequence
+            btnSubmit.disabled = false;
+        }
 
-        btnCapture.addEventListener('click', function() {
-            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
-            ctx.drawImage(video, 0, 0);
-            
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-            faceImageInput.value = dataUrl;
-            facePreviewImg.src = dataUrl;
-            activeCamera.classList.add('hidden');
-            previewUI.classList.remove('hidden');
-            stopCamera();
-        });
-
-        btnRetake.addEventListener('click', function() {
+        btnStart.addEventListener('click', startVerification);
+        btnStop.addEventListener('click', stopVerification);
+        
+        btnRetake.addEventListener('click', () => {
             previewUI.classList.add('hidden');
-            placeholder.classList.remove('hidden');
-            faceImageInput.value = '';
+            startVerification();
+        });
+
+        cameraSelect.addEventListener('change', async (e) => {
+            currentDeviceId = e.target.value;
+            if (isRunning) {
+                if (stream) stream.getTracks().forEach(track => track.stop());
+                isRunning = false;
+                if (frameInterval) clearTimeout(frameInterval);
+                startVerification();
+            }
+        });
+
+        form.addEventListener('submit', function(e) {
+            if (!faceImageInput.value) {
+                e.preventDefault();
+                alert('Pendaftaran wajah wajib dilakukan!');
+            }
         });
     });
 </script>

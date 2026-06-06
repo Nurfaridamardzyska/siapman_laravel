@@ -139,7 +139,7 @@
                         </div>
 
                         <!-- Camera Selector (Moved outside) -->
-                        <div id="camera-selector-wrapper" class="w-full mb-4 hidden">
+                        <div id="camera-selector-wrapper" class="w-full mb-4">
                             <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Pilih Sumber Kamera:</label>
                             <select id="camera-select" class="w-full bg-slate-100 text-slate-800 text-xs px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition appearance-none">
                                 <option value="">Mendeteksi Kamera...</option>
@@ -259,21 +259,33 @@
                 const videoDevices = devices.filter(device => device.kind === 'videoinput');
                 
                 cameraSelect.innerHTML = '';
+                
+                if (videoDevices.length === 0) {
+                    const option = document.createElement('option');
+                    option.text = "Kamera tidak terdeteksi";
+                    cameraSelect.appendChild(option);
+                    return;
+                }
+
                 videoDevices.forEach((device, index) => {
                     const option = document.createElement('option');
                     option.value = device.deviceId;
-                    option.text = device.label || `Kamera ${index + 1}`;
+                    // Jika belum ada izin, label akan kosong. Kita beri nama generik.
+                    option.text = device.label || `Kamera ${index + 1} (Beri Akses Dahulu)`;
                     if (currentDeviceId === device.deviceId) option.selected = true;
                     cameraSelect.appendChild(option);
                 });
 
-                if (videoDevices.length > 1) {
-                    document.getElementById('camera-selector-wrapper').classList.remove('hidden');
-                }
+                // Selalu tampilkan dropdown agar opsi terlihat
+                document.getElementById('camera-selector-wrapper').classList.remove('hidden');
+                
             } catch (err) {
                 console.error("Gagal melist kamera:", err);
             }
         }
+
+        // Pancing browser untuk meminta izin & membaca kamera saat awal
+        getCameras();
 
         async function startVerification() {
             if (isRunning) return;

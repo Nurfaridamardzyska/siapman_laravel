@@ -177,6 +177,13 @@ class LaporanController extends Controller
             ];
         });
 
+        if ($request->has('export') && $request->export === 'excel') {
+            return \Maatwebsite\Excel\Facades\Excel::download(
+                new \App\Exports\LaporanHarianExport($data), 
+                'Laporan_Presensi_Harian_' . $tanggal . '.xlsx'
+            );
+        }
+
         return view('superadmin.laporan.presensi-harian', compact('data', 'tanggal'));
     }
 
@@ -334,6 +341,19 @@ class LaporanController extends Controller
         $totalCuti = $rows->sum('cuti_izin');
         $totalTerlambat = $rows->sum(fn ($row) => $row->tl1 + $row->tl2 + $row->tl3 + $row->tl4);
         $totalPulangCepat = $rows->sum(fn ($row) => $row->psw1 + $row->psw2 + $row->psw3 + $row->psw4);
+
+        $months = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+        ];
+
+        if ($request->has('export') && $request->export === 'excel') {
+            return \Maatwebsite\Excel\Facades\Excel::download(
+                new \App\Exports\LaporanBulananExport($rows), 
+                'Laporan_Presensi_Bulanan_' . $months[(int)$bulan] . '_' . $tahun . '.xlsx'
+            );
+        }
 
         return view('superadmin.laporan.presensi-bulanan', compact(
             'rows',

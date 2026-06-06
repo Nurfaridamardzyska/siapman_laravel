@@ -211,6 +211,10 @@
                            class="{{ subNavClass(request()->routeIs('superadmin.tipe-pegawai.*')) }}">
                             Tipe Pegawai
                         </a>
+                        <a href="{{ route('superadmin.master.tipe-kendala.index') }}"
+                           class="{{ subNavClass(request()->routeIs('superadmin.master.tipe-kendala.*')) }}">
+                            Jenis Kendala
+                        </a>
                         <a href="{{ route('superadmin.hari-libur.index') }}"
                            class="{{ subNavClass(request()->routeIs('superadmin.hari-libur.*')) }}">
                             Hari Libur

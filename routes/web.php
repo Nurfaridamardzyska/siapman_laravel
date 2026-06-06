@@ -31,6 +31,7 @@ use App\Http\Controllers\SuperAdmin\Absensi\AttendanceLogController;
 use App\Http\Controllers\SuperAdmin\Master\DocumentTypeController;
 use App\Http\Controllers\SuperAdmin\Master\EmployeeTypeController;
 use App\Http\Controllers\SuperAdmin\Master\HolidayController;
+use App\Http\Controllers\SuperAdmin\Master\MachineFaultTypeController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -160,6 +161,10 @@ Route::middleware(['auth', 'role:superadmin'])
 
         Route::resource('master/instansi', CompanyController::class)
             ->names('master.instansi');
+
+        Route::resource('master/tipe-kendala', MachineFaultTypeController::class)
+            ->names('master.tipe-kendala')
+            ->parameters(['tipe-kendala' => 'tipe_kendala']);
 
         Route::resource('master/tpp', TppController::class)
             ->names('master.tpp')

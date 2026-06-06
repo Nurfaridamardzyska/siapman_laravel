@@ -16,7 +16,6 @@ class MachineFaultMasterSeeder extends Seeder
 
         DB::table('machine_fault_types')->insertOrIgnore([
             ['name' => 'Mesin rusak / error', 'priority' => 1, 'is_active' => 1, 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Lupa absen', 'priority' => 2, 'is_active' => 1, 'created_at' => now(), 'updated_at' => now()],
             ['name' => 'Lokasi/GPS bermasalah', 'priority' => 3, 'is_active' => 1, 'created_at' => now(), 'updated_at' => now()],
             ['name' => 'Aplikasi bermasalah', 'priority' => 4, 'is_active' => 1, 'created_at' => now(), 'updated_at' => now()],
         ]);

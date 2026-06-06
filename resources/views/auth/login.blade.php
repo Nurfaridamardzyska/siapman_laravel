@@ -46,7 +46,7 @@
 
         <div class="pt-4">
             <button type="submit" class="w-full flex justify-center py-3.5 px-4 rounded-2xl shadow-lg shadow-blue-500/30 text-sm font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 focus:outline-none focus:ring-4 focus:ring-blue-500/20 transform hover:-translate-y-1 transition-all duration-300">
-                {{ __('Masuk ke Aplikasi') }}
+                {{ __('Masuk') }}
             </button>
         </div>
     </form>

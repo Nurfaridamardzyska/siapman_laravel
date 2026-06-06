@@ -144,7 +144,7 @@
                 <!-- Right: Face Scan -->
                 <div class="space-y-6">
                     <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg p-6 flex flex-col items-center">
-                        <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 w-full text-center">Biometric Identity</h2>
+                        <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 w-full text-center">Identitas Biometrik</h2>
                         
                         @php
                             $activeFace = $user->employee ? $user->employee->activeFace : null;
@@ -158,7 +158,7 @@
                                 <img src="{{ asset('storage/' . $activeFace->image_path) }}" class="h-full w-full object-cover grayscale-[30%]">
                                 <div class="absolute inset-0 bg-indigo-900/10 mix-blend-multiply"></div>
                                 <div class="absolute bottom-4 left-0 right-0 flex justify-center">
-                                    <button type="button" id="btn-re-scan" class="bg-white/90 backdrop-blur-md px-4 py-1.5 rounded-full text-[9px] font-black text-indigo-700 shadow-xl hover:bg-white transition active:scale-95 uppercase tracking-widest">UPDATE PHOTO</button>
+                                    <button type="button" id="btn-re-scan" class="bg-white/90 backdrop-blur-md px-4 py-1.5 rounded-full text-[9px] font-black text-indigo-700 shadow-xl hover:bg-white transition active:scale-95 uppercase tracking-widest">PERBARUI FOTO</button>
                                 </div>
                             </div>
                             @endif
@@ -168,8 +168,8 @@
                                 <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-md text-blue-600 mb-4">
                                     <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
                                 </div>
-                                <h3 class="text-xs font-black text-slate-800 tracking-tight">No Active Model</h3>
-                                <button type="button" id="btn-start-camera" class="mt-4 w-full rounded-xl bg-slate-800 py-2.5 text-xs font-bold text-white hover:bg-slate-900 transition active:scale-95">RE-SCAN</button>
+                                <h3 class="text-xs font-black text-slate-800 tracking-tight">Belum Ada Wajah</h3>
+                                <button type="button" id="btn-start-camera" class="mt-4 w-full rounded-xl bg-slate-800 py-2.5 text-xs font-bold text-white hover:bg-slate-900 transition active:scale-95">AMBIL FOTO</button>
                             </div>
 
                             <!-- Active Video -->
@@ -180,15 +180,15 @@
                                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path></svg>
                                      </button>
                                 </div>
-                                <button type="button" id="btn-stop-camera" class="absolute top-3 right-6 text-white text-xs font-bold">CANCEL</button>
+                                <button type="button" id="btn-stop-camera" class="absolute top-3 right-6 text-white text-xs font-bold">BATAL</button>
                             </div>
 
                             <!-- Preview -->
                             <div id="camera-preview" class="hidden h-full">
                                 <img id="face-preview-img" src="" class="h-full w-full object-cover">
                                 <div class="absolute bottom-4 left-0 right-0 flex flex-col items-center gap-1">
-                                    <span class="bg-blue-600 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded-full">NEW SCAN READY</span>
-                                    <button type="button" id="btn-retake" class="text-white drop-shadow-md text-[9px] font-black uppercase tracking-widest">RETAKE</button>
+                                    <span class="bg-blue-600 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded-full">FOTO SIAP DISIMPAN</span>
+                                    <button type="button" id="btn-retake" class="text-white drop-shadow-md text-[9px] font-black uppercase tracking-widest">ULANGI FOTO</button>
                                 </div>
                             </div>
                         </div>

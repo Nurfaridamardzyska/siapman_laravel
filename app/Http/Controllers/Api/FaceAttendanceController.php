@@ -335,13 +335,11 @@ class FaceAttendanceController extends Controller
 
             $today = now()->toDateString();
 
-            $status = AttendanceLogStatus::where('code', 'P-01')->first();
-
-            if (!$status) {
-                return response()->json([
-                    'message' => 'Status absensi P-01 tidak ditemukan di database',
-                ], 500);
-            }
+            // Automatically create the status if it is missing in the database
+            $status = AttendanceLogStatus::firstOrCreate(
+                ['code' => 'ONTIME'],
+                ['name' => 'Hadir Tepat Waktu']
+            );
 
             $attendanceLog = AttendanceLog::firstOrCreate(
                 [

@@ -17,9 +17,11 @@ class AttendanceLog extends Model
         'employee_id',
         'attendance_date',
         'check_in_at',
+        'apel_at',
         'check_out_at',
         'status_id',
         'check_in_photo_path',
+        'apel_photo_path',
         'check_out_photo_path',
         'note'
     ];

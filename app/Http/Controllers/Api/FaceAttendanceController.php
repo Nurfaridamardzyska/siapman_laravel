@@ -432,6 +432,24 @@ class FaceAttendanceController extends Controller
                 $attendanceLog->check_out_photo_path = $photoPath;
             }
 
+            if ($request->type === 'apel') {
+                if (!empty($attendanceLog->apel_at) && !$debugMode) {
+                    $payload = [
+                        'message' => 'Anda sudah melakukan absensi apel hari ini',
+                        'matched' => true,
+                    ];
+                    $this->logVerificationAudit(
+                        $request, $payload, 422, true, true, false, 0, (int) $attendanceLog->id, (int) $employee->id
+                    );
+                    return response()->json($payload, 422);
+                }
+
+                $attendanceLog->apel_at = $attendanceTime->format('H:i:s');
+                $photoPath = $request->file('face_image')
+                    ->store('attendance_faces/apel', 'public');
+                $attendanceLog->apel_photo_path = $photoPath;
+            }
+
             $attendanceLog->save();
 
             AttendanceScanLog::create([

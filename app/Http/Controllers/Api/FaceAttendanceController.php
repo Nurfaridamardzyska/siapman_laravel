@@ -559,6 +559,7 @@ class FaceAttendanceController extends Controller
                         'employee_id' => $item->employee_id,
                         'attendance_date' => optional($item->attendance_date)->format('Y-m-d'),
                         'check_in_at' => $item->check_in_at,
+                        'apel_at' => $item->apel_at,
                         'check_out_at' => $item->check_out_at,
                         'status_id' => $item->status_id,
                         'status' => $item->status ? [
@@ -567,6 +568,7 @@ class FaceAttendanceController extends Controller
                             'name' => $item->status->name,
                         ] : null,
                         'check_in_photo_path' => $item->check_in_photo_path,
+                        'apel_photo_path' => $item->apel_photo_path,
                         'check_out_photo_path' => $item->check_out_photo_path,
                         'note' => $item->note,
                         'scan_logs' => $item->scanLogs->map(function ($scan) {
@@ -634,6 +636,7 @@ class FaceAttendanceController extends Controller
                     'employee_id' => $log->employee_id,
                     'attendance_date' => optional($log->attendance_date)->format('Y-m-d'),
                     'check_in_at' => $log->check_in_at,
+                    'apel_at' => $log->apel_at,
                     'check_out_at' => $log->check_out_at,
                     'status_id' => $log->status_id,
                     'status' => $log->status ? [
@@ -642,6 +645,7 @@ class FaceAttendanceController extends Controller
                         'name' => $log->status->name,
                     ] : null,
                     'check_in_photo_path' => $log->check_in_photo_path,
+                    'apel_photo_path' => $log->apel_photo_path,
                     'check_out_photo_path' => $log->check_out_photo_path,
                     'note' => $log->note,
                 ] : null,

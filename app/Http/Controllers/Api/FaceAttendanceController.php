@@ -335,11 +335,11 @@ class FaceAttendanceController extends Controller
 
             $today = now()->toDateString();
 
-            $status = AttendanceLogStatus::where('code', 'ONTIME')->first();
+            $status = AttendanceLogStatus::where('code', 'P-01')->first();
 
             if (!$status) {
                 return response()->json([
-                    'message' => 'Status absensi ONTIME tidak ditemukan',
+                    'message' => 'Status absensi P-01 tidak ditemukan di database',
                 ], 500);
             }
 

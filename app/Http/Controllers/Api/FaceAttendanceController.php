@@ -335,13 +335,11 @@ class FaceAttendanceController extends Controller
 
             $today = now()->toDateString();
 
-            $status = AttendanceLogStatus::where('code', 'ONTIME')->first();
-
-            if (!$status) {
-                return response()->json([
-                    'message' => 'Status absensi ONTIME tidak ditemukan',
-                ], 500);
-            }
+            // Automatically create the status if it is missing in the database
+            $status = AttendanceLogStatus::firstOrCreate(
+                ['code' => 'ONTIME'],
+                ['name' => 'Hadir Tepat Waktu']
+            );
 
             $attendanceLog = AttendanceLog::firstOrCreate(
                 [
@@ -432,6 +430,24 @@ class FaceAttendanceController extends Controller
                 $photoPath = $request->file('face_image')
                     ->store('attendance_faces/checkout', 'public');
                 $attendanceLog->check_out_photo_path = $photoPath;
+            }
+
+            if ($request->type === 'apel') {
+                if (!empty($attendanceLog->apel_at) && !$debugMode) {
+                    $payload = [
+                        'message' => 'Anda sudah melakukan absensi apel hari ini',
+                        'matched' => true,
+                    ];
+                    $this->logVerificationAudit(
+                        $request, $payload, 422, true, true, false, 0, (int) $attendanceLog->id, (int) $employee->id
+                    );
+                    return response()->json($payload, 422);
+                }
+
+                $attendanceLog->apel_at = $attendanceTime->format('H:i:s');
+                $photoPath = $request->file('face_image')
+                    ->store('attendance_faces/apel', 'public');
+                $attendanceLog->apel_photo_path = $photoPath;
             }
 
             $attendanceLog->save();
@@ -543,6 +559,7 @@ class FaceAttendanceController extends Controller
                         'employee_id' => $item->employee_id,
                         'attendance_date' => optional($item->attendance_date)->format('Y-m-d'),
                         'check_in_at' => $item->check_in_at,
+                        'apel_at' => $item->apel_at,
                         'check_out_at' => $item->check_out_at,
                         'status_id' => $item->status_id,
                         'status' => $item->status ? [
@@ -551,6 +568,7 @@ class FaceAttendanceController extends Controller
                             'name' => $item->status->name,
                         ] : null,
                         'check_in_photo_path' => $item->check_in_photo_path,
+                        'apel_photo_path' => $item->apel_photo_path,
                         'check_out_photo_path' => $item->check_out_photo_path,
                         'note' => $item->note,
                         'scan_logs' => $item->scanLogs->map(function ($scan) {
@@ -618,6 +636,7 @@ class FaceAttendanceController extends Controller
                     'employee_id' => $log->employee_id,
                     'attendance_date' => optional($log->attendance_date)->format('Y-m-d'),
                     'check_in_at' => $log->check_in_at,
+                    'apel_at' => $log->apel_at,
                     'check_out_at' => $log->check_out_at,
                     'status_id' => $log->status_id,
                     'status' => $log->status ? [
@@ -626,6 +645,7 @@ class FaceAttendanceController extends Controller
                         'name' => $log->status->name,
                     ] : null,
                     'check_in_photo_path' => $log->check_in_photo_path,
+                    'apel_photo_path' => $log->apel_photo_path,
                     'check_out_photo_path' => $log->check_out_photo_path,
                     'note' => $log->note,
                 ] : null,

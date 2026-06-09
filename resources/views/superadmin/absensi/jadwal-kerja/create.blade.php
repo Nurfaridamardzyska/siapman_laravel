@@ -66,10 +66,10 @@
                 <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 mb-6">
                     <p class="text-sm text-slate-700 font-semibold">Ketentuan Jam Absensi ASN</p>
                     <ul class="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-500">
-                        <li>Senin sampai Jumat: <span class="font-semibold text-slate-700">08:00 - 16:00</span>.</li>
-                        <li>Toleransi keterlambatan default <span class="font-semibold text-slate-700">15 menit</span>.</li>
-                        <li>Menit efektif kerja untuk jadwal penuh adalah <span class="font-semibold text-slate-700">450 menit</span>.</li>
-                        <li>Jika jadwal setengah hari (Sabtu), gunakan contoh: 08:00 - 12:00 dengan toleransi 10 menit.</li>
+                        <li>Hari Senin s.d. Kamis: <span class="font-semibold text-slate-700">07:00 - 15:30</span>.</li>
+                        <li>Hari Jumat: <span class="font-semibold text-slate-700">07:00 - 15:00</span>.</li>
+                        <li>Toleransi keterlambatan <span class="font-semibold text-slate-700">0 menit</span> (keterlambatan dihitung sejak 07:31).</li>
+                        <li>Wajib mengikuti <span class="font-semibold text-slate-700">Apel Pagi</span> setiap hari Senin.</li>
                         <li>Biarkan tipe pegawai kosong bila aturan berlaku untuk semua ASN.</li>
                     </ul>
                 </div>
@@ -78,12 +78,12 @@
                     <p class="text-sm text-slate-700 font-semibold">Contoh Pengisian</p>
                     <div class="mt-3 space-y-3 text-sm text-slate-500">
                         <div class="rounded-2xl bg-slate-100 p-3">
-                            <p class="font-medium text-slate-700">Contoh 1: Jadwal ASN Penuh</p>
-                            <p>Senin - Jumat | Jam Masuk: 08:00 | Jam Pulang: 16:00 | Toleransi: 15 menit | Menit Efektif: 450</p>
+                            <p class="font-medium text-slate-700">Contoh 1: Jadwal ASN Senin - Kamis</p>
+                            <p>Senin - Kamis | Jam Masuk: 07:00 | Jam Pulang: 15:30 | Toleransi: 0 menit</p>
                         </div>
                         <div class="rounded-2xl bg-slate-100 p-3">
-                            <p class="font-medium text-slate-700">Contoh 2: Jadwal Setengah Hari</p>
-                            <p>Sabtu | Jam Masuk: 08:00 | Jam Pulang: 12:00 | Toleransi: 10 menit | Menit Efektif: 210</p>
+                            <p class="font-medium text-slate-700">Contoh 2: Jadwal ASN Jumat</p>
+                            <p>Jumat | Jam Masuk: 07:00 | Jam Pulang: 15:00 | Toleransi: 0 menit</p>
                         </div>
                         <p class="text-slate-500">
                             Format jam harus <span class="font-semibold">HH:MM</span>. Kosongkan tipe pegawai jika jadwal berlaku untuk seluruh ASN.

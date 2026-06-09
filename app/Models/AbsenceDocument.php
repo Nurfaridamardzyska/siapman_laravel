@@ -20,6 +20,8 @@ class AbsenceDocument extends Model
         'file_path',
         'start_date',
         'end_date',
+        'lokasi_tujuan',
+        'nama_kegiatan',
         'status',
         'approved_by',
         'rejected_by',

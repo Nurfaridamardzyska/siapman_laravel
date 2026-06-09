@@ -92,10 +92,29 @@ class AbsenceDocumentController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
             'notes' => 'nullable|string',
             'file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'lokasi_tujuan' => 'nullable|string|max:255',
+            'nama_kegiatan' => 'nullable|string|max:255',
         ]);
 
         $startDate = $request->date('start_date');
         $endDate = $request->date('end_date');
+
+        // Validation: Maximum 3 days after start_date
+        $today = now()->startOfDay();
+        $diffDays = $today->diffInDays($startDate->startOfDay(), false);
+        if ($diffDays < -3) {
+            return response()->json([
+                'message' => 'Surat keterangan wajib diunggah maksimal 3 hari setelah kegiatan dilaksanakan.',
+            ], 422);
+        }
+
+        if (strtolower($request->document_type) === 'dinas luar') {
+            if (empty($request->lokasi_tujuan) || empty($request->nama_kegiatan)) {
+                return response()->json([
+                    'message' => 'Tempat/Lokasi Tujuan dan Nama Kegiatan wajib diisi untuk Dinas Luar.',
+                ], 422);
+            }
+        }
 
         $hasOverlap = AbsenceDocument::where('employee_id', $employee->id)
             ->where('status', '!=', 'rejected')
@@ -122,6 +141,8 @@ class AbsenceDocumentController extends Controller
             'file_path' => $filePath,
             'start_date' => $request->start_date,
             'end_date' => $request->end_date,
+            'lokasi_tujuan' => $request->lokasi_tujuan,
+            'nama_kegiatan' => $request->nama_kegiatan,
             'status' => 'pending',
             'approved_by' => null,
             'rejected_by' => null,

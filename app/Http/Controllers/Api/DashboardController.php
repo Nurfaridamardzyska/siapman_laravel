@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Employee;
 use App\Models\User;
 use App\Models\AttendanceLog;
+use App\Models\AbsenceDocument;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -44,44 +45,110 @@ class DashboardController extends Controller
         $now = Carbon::now();
         $month = $now->month;
         $year = $now->year;
-        $today = $now->day;
+        $today = $now->copy()->endOfDay(); // Check up to today
 
-        // Hitung hari kerja yang sudah terlewati sampai hari ini (Senin-Jumat)
-        $workingDaysToDate = 0;
-        for ($d = 1; $d <= $today; $d++) {
-            $date = Carbon::create($year, $month, $d);
-            if (!$date->isWeekend()) {
-                $workingDaysToDate++;
-            }
-        }
-        
-        // Total hari kerja dalam sebulan (untuk estimasi akhir)
         $totalWorkingDaysInMonth = 0;
-        $daysInMonth = $now->daysInMonth;
-        for ($d = 1; $d <= $daysInMonth; $d++) {
+        $totalHadir = 0;
+        $totalLate = 0;
+        $totalAlpha = 0;
+        $reductionPercent = 0.0;
+
+        for ($d = 1; $d <= $now->daysInMonth; $d++) {
             $date = Carbon::create($year, $month, $d);
-            if (!$date->isWeekend()) {
-                $totalWorkingDaysInMonth++;
+            
+            if ($date->isWeekend()) {
+                continue;
+            }
+            $totalWorkingDaysInMonth++;
+
+            if ($date->greaterThan($today)) {
+                continue; // Do not check future days
+            }
+
+            // Check approved document (Cuti/Izin/Sakit/DL)
+            $hasApprovedDoc = AbsenceDocument::where('employee_id', $employee->id)
+                ->where('status', 'approved')
+                ->whereDate('start_date', '<=', $date->format('Y-m-d'))
+                ->whereDate('end_date', '>=', $date->format('Y-m-d'))
+                ->exists();
+
+            if ($hasApprovedDoc) {
+                // Skip deduction for approved leave
+                continue;
+            }
+
+            // Check attendance log
+            $log = AttendanceLog::where('employee_id', $employee->id)
+                ->whereDate('attendance_date', $date->format('Y-m-d'))
+                ->first();
+
+            $isMonday = $date->isMonday();
+            $isFriday = $date->isFriday();
+
+            if (!$log || !$log->check_in_at) {
+                $totalAlpha++;
+                if ($isMonday) {
+                    $reductionPercent += 5; // 3% alpha + 2% no apel
+                } else {
+                    $reductionPercent += 3; // 3% alpha
+                }
+                continue; // Cannot be late or PSW if alpha
+            }
+
+            $totalHadir++;
+
+            // Apel check for Monday
+            if ($isMonday && !$log->apel_at) {
+                $reductionPercent += 2;
+            }
+
+            // Late (TL) check
+            $checkInTime = Carbon::parse($log->check_in_at);
+            $limitCheckIn = $date->copy()->setTime(7, 30, 0);
+            
+            if ($checkInTime->greaterThan($limitCheckIn)) {
+                $totalLate++;
+                $lateDiffMinutes = $limitCheckIn->diffInMinutes($checkInTime);
+                if ($lateDiffMinutes >= 1 && $lateDiffMinutes <= 30) {
+                    $reductionPercent += 0.5;
+                } elseif ($lateDiffMinutes >= 31 && $lateDiffMinutes <= 60) {
+                    $reductionPercent += 1;
+                } elseif ($lateDiffMinutes >= 61 && $lateDiffMinutes <= 90) {
+                    $reductionPercent += 1.25;
+                } elseif ($lateDiffMinutes > 90) {
+                    $reductionPercent += 1.5;
+                }
+            }
+
+            // Early checkout (PSW) check
+            if (!$log->check_out_at) {
+                $reductionPercent += 1.55;
+            } else {
+                $checkOutTime = Carbon::parse($log->check_out_at);
+                $limitCheckOut = $isFriday 
+                    ? $date->copy()->setTime(15, 0, 0) 
+                    : $date->copy()->setTime(15, 30, 0);
+                
+                if ($checkOutTime->lessThan($limitCheckOut)) {
+                    $pswDiffMinutes = $checkOutTime->diffInMinutes($limitCheckOut);
+                    if ($pswDiffMinutes >= 1 && $pswDiffMinutes <= 30) {
+                        $reductionPercent += 0.5;
+                    } elseif ($pswDiffMinutes >= 31 && $pswDiffMinutes <= 60) {
+                        $reductionPercent += 1;
+                    } elseif ($pswDiffMinutes >= 61 && $pswDiffMinutes <= 90) {
+                        $reductionPercent += 1.25;
+                    } elseif ($pswDiffMinutes > 90) {
+                        $reductionPercent += 1.55;
+                    }
+                }
             }
         }
 
-        // Ambil log kehadiran bulan ini
-        $logs = AttendanceLog::where('employee_id', $employee->id)
-            ->whereMonth('attendance_date', $month)
-            ->whereYear('attendance_date', $year)
-            ->get();
-
-        $totalHadir = $logs->whereNotNull('check_in_at')->count();
-        $totalLate = $logs->where('status_id', 2)->count();
-        
-        // Alpa hanya dihitung dari hari kerja yang sudah lewat dikurangi kehadiran/izin
-        // (Untuk simulasi sederhana, kita gunakan workingDaysToDate)
-        $totalAlpha = max(0, $workingDaysToDate - $totalHadir);
+        if ($reductionPercent > 100) {
+            $reductionPercent = 100;
+        }
 
         $tppBase = $employee->tpp_allowance ?? 2000000;
-        
-        // Logika pengurangan: 5% per alpa, 1% per terlambat
-        $reductionPercent = ($totalAlpha * 5) + ($totalLate * 1);
         $totalPotongan = ($tppBase * $reductionPercent) / 100;
         $totalTpp = max(0, $tppBase - $totalPotongan);
 

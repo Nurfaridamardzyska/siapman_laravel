@@ -339,7 +339,8 @@ def _update_validation_locked(frame, faces, now: float):
         print(">>> START: Step 0 (Stabilizing) <<<")
 
     rgb_frame = frame[:, :, ::-1]
-    landmarks_list = face_recognition.face_landmarks(rgb_frame)
+    css_face_bbox = [(y, x + w, y + h, x)]
+    landmarks_list = face_recognition.face_landmarks(rgb_frame, face_locations=css_face_bbox)
 
     if not landmarks_list:
         _status_text = "Look straight"

@@ -78,8 +78,8 @@
                                     class="w-full rounded-xl border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none">
                             </div>
 
-                            <div class="space-y-2">
-                                <label class="text-sm font-bold text-slate-700 ml-1 tracking-tight">NIP / NRP</label>
+                            <div class="space-y-1.5">
+                                <label class="text-sm font-bold text-slate-700 ml-1 tracking-tight">NIP</label>
                                 <input type="text" name="nip" value="{{ old('nip', $user->nip) }}" required
                                     class="w-full rounded-xl border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none">
                             </div>

@@ -57,7 +57,7 @@
                             </div>
 
                             <div class="space-y-2">
-                                <label class="text-sm font-bold text-slate-700 ml-1">NIP / NRP <span class="text-rose-500">*</span></label>
+                                <label class="text-sm font-bold text-slate-700 ml-1">NIP <span class="text-rose-500">*</span></label>
                                 <input type="text" name="nip" value="{{ old('nip') }}" placeholder="19880123XXXXXXXX" required
                                     class="w-full rounded-xl border-slate-200 px-4 py-2.5 text-sm shadow-sm transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none">
                             </div>

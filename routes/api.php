@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\AttendanceScheduleController;
 use App\Http\Controllers\Api\LaporanController;
 use App\Http\Controllers\Api\AbsenceDocumentController;
 use App\Http\Controllers\Api\FaultReportController;
+use App\Http\Controllers\Api\DailyActivityController;
 use App\Http\Controllers\Api\DocumentTypeApiController;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -46,6 +47,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/absence-documents', [AbsenceDocumentController::class, 'index']);
     Route::post('/absence-documents', [AbsenceDocumentController::class, 'store']);
     Route::get('/absence-documents/{id}', [AbsenceDocumentController::class, 'show']);
+
+    Route::get('/daily-activities', [DailyActivityController::class, 'index']);
+    Route::post('/daily-activities', [DailyActivityController::class, 'store']);
 
     Route::get('/fault-reports', [FaultReportController::class, 'index']);
     Route::post('/fault-reports', [FaultReportController::class, 'store']);

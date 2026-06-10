@@ -41,7 +41,7 @@ EMBEDDINGS_KEY = os.getenv("FACE_EMBEDDINGS_KEY", "").strip()
 
 # Thresholds for liveliness (Relaxed for better UX)
 EAR_THRESHOLD = 0.22
-TURN_THRESHOLD = 1.40
+TURN_THRESHOLD = 1.15
 MOUTH_OPEN_THRESHOLD = 0.25
 PASSIVE_BLUR_MIN = float(os.getenv("FACE_PASSIVE_BLUR_MIN", "15.0"))
 PASSIVE_HIGHLIGHT_MAX = float(os.getenv("FACE_PASSIVE_HIGHLIGHT_MAX", "0.30"))

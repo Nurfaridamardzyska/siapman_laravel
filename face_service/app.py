@@ -62,6 +62,9 @@ _current_step = 0
 _step_start_time = 0.0
 _blink_detected = False
 _turn_detected = False
+_blink_count = 0
+_turn_left = False
+_turn_right = False
 _challenge_sequence = []
 _session_id = None
 _proof_token = None
@@ -245,7 +248,7 @@ def _status_payload_locked():
 
 # ================= VALIDATION =================
 def _reset_validation_locked():
-    global _first_detected_at, _status_text, _valid, _elapsed_sec, _last_face_seen_at, _current_step, _blink_detected, _turn_detected, _step_start_time, _last_valid_frame, _proof_token, _proof_expires_at, _last_frame_processed_at, _mouth_detected, _motion_samples, _last_face_center
+    global _first_detected_at, _status_text, _valid, _elapsed_sec, _last_face_seen_at, _current_step, _blink_detected, _turn_detected, _step_start_time, _last_valid_frame, _proof_token, _proof_expires_at, _last_frame_processed_at, _mouth_detected, _motion_samples, _last_face_center, _blink_count, _turn_left, _turn_right
     _first_detected_at = None
     _status_text = "Idle"
     _warning_text = ""
@@ -256,6 +259,9 @@ def _reset_validation_locked():
     _step_start_time = 0.0
     _blink_detected = False
     _turn_detected = False
+    _blink_count = 0
+    _turn_left = False
+    _turn_right = False
     _mouth_detected = False
     _last_valid_frame = None
     _proof_token = None
@@ -266,11 +272,14 @@ def _reset_validation_locked():
     _issue_new_session_locked()
 
 def _complete_current_step_locked(frame, now: float):
-    global _current_step, _step_start_time, _blink_detected, _turn_detected, _mouth_detected, _valid, _status_text, _last_valid_frame, _proof_token, _proof_expires_at
+    global _current_step, _step_start_time, _blink_detected, _turn_detected, _mouth_detected, _valid, _status_text, _last_valid_frame, _proof_token, _proof_expires_at, _blink_count, _turn_left, _turn_right
     _current_step += 1
     _step_start_time = now
     _blink_detected = False
     _turn_detected = False
+    _blink_count = 0
+    _turn_left = False
+    _turn_right = False
     _mouth_detected = False
 
     if (_current_step - 1) >= len(_challenge_sequence):
@@ -286,7 +295,7 @@ def _complete_current_step_locked(frame, now: float):
         print(f">>> STEP {_current_step}: {_action_label(next_action)} <<<")
 
 def _update_validation_locked(frame, faces, now: float):
-    global _first_detected_at, _status_text, _valid, _elapsed_sec, _last_face_seen_at, _current_step, _blink_detected, _turn_detected, _step_start_time, _last_valid_frame, _proof_token, _proof_expires_at, _last_frame_processed_at, _mouth_detected, _motion_samples, _last_face_center
+    global _first_detected_at, _status_text, _valid, _elapsed_sec, _last_face_seen_at, _current_step, _blink_detected, _turn_detected, _step_start_time, _last_valid_frame, _proof_token, _proof_expires_at, _last_frame_processed_at, _mouth_detected, _motion_samples, _last_face_center, _blink_count, _turn_left, _turn_right
 
     if (_last_frame_processed_at > 0) and ((now - _last_frame_processed_at) < MIN_FRAME_INTERVAL_SECONDS):
         return
@@ -363,6 +372,9 @@ def _update_validation_locked(frame, faces, now: float):
             _step_start_time = now
             _blink_detected = False
             _turn_detected = False
+            _blink_count = 0
+            _turn_left = False
+            _turn_right = False
             _mouth_detected = False
             first_action = _challenge_sequence[0]
             _status_text = _action_prompt(first_action)
@@ -405,13 +417,26 @@ def _update_validation_locked(frame, faces, now: float):
 
             dist_l = np.linalg.norm(np.array(nose_tip) - np.array(eye_l))
             dist_r = np.linalg.norm(np.array(nose_tip) - np.array(eye_r))
-            ratio = max(dist_l, dist_r) / (min(dist_l, dist_r) + 0.001)
+            
+            # Kiri: dist_r > dist_l * TURN_THRESHOLD
+            if dist_r > dist_l * TURN_THRESHOLD:
+                _turn_left = True
+            # Kanan: dist_l > dist_r * TURN_THRESHOLD
+            if dist_l > dist_r * TURN_THRESHOLD:
+                _turn_right = True
 
-            if ratio > TURN_THRESHOLD:
-                _turn_detected = True
-
-            if _turn_detected and ratio < 1.12 and (now - _step_start_time) > 0.3:
-                _complete_current_step_locked(frame, now)
+            msg = "Silakan gelengkan kepala (Kanan & Kiri)"
+            if _turn_left and not _turn_right:
+                msg = "Bagus, sekarang balas geleng ke Kanan"
+            elif _turn_right and not _turn_left:
+                msg = "Bagus, sekarang balas geleng ke Kiri"
+            
+            _status_text = msg
+            
+            if _turn_left and _turn_right:
+                ratio = max(dist_l, dist_r) / (min(dist_l, dist_r) + 0.001)
+                if ratio < 1.15: # Kembali ke tengah
+                    _complete_current_step_locked(frame, now)
         return
 
     if current_action == "mouth":

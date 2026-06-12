@@ -25,7 +25,7 @@ KNOWN_FACES_DIR = os.path.join(os.path.dirname(__file__), "known_faces")
 if not os.path.exists(KNOWN_FACES_DIR):
     os.makedirs(KNOWN_FACES_DIR)
 
-STABILIZE_SECONDS = 2.0
+STABILIZE_SECONDS = 1.0
 CAMERA_INDEX = 0
 GRACE_PERIOD_SECONDS = 3.0  # Lebih longgar untuk kestabilan (sebelumnya 1.5)
 LIVENESS_PROOF_TTL_SECONDS = 30.0
@@ -40,7 +40,7 @@ FACE_MATCH_THRESHOLD = float(os.getenv("FACE_MATCH_THRESHOLD", "0.6"))
 EMBEDDINGS_KEY = os.getenv("FACE_EMBEDDINGS_KEY", "").strip()
 
 # Thresholds for liveliness (Relaxed for better UX)
-EAR_THRESHOLD = 0.22
+EAR_THRESHOLD = 0.24
 TURN_THRESHOLD = 1.15
 MOUTH_OPEN_THRESHOLD = 0.25
 PASSIVE_BLUR_MIN = float(os.getenv("FACE_PASSIVE_BLUR_MIN", "15.0"))
@@ -217,8 +217,7 @@ def _action_prompt(action: str) -> str:
     return "Lakukan instruksi di layar"
 
 def _new_challenge_sequence():
-    sequence = random.sample(list(CHALLENGE_ACTIONS), k=2)
-    random.shuffle(sequence)
+    sequence = random.sample(list(CHALLENGE_ACTIONS), k=1)
     return sequence
 
 def _issue_new_session_locked():
@@ -390,7 +389,7 @@ def _update_validation_locked(frame, faces, now: float):
             if avg_ear < EAR_THRESHOLD:
                 _blink_detected = True
 
-            if _blink_detected and avg_ear > (EAR_THRESHOLD + 0.05) and (now - _step_start_time) > 0.8:
+            if _blink_detected and avg_ear > (EAR_THRESHOLD + 0.04) and (now - _step_start_time) > 0.3:
                 _complete_current_step_locked(frame, now)
         return
 
@@ -411,7 +410,7 @@ def _update_validation_locked(frame, faces, now: float):
             if ratio > TURN_THRESHOLD:
                 _turn_detected = True
 
-            if _turn_detected and ratio < (TURN_THRESHOLD - 0.2) and (now - _step_start_time) > 0.8:
+            if _turn_detected and ratio < 1.12 and (now - _step_start_time) > 0.3:
                 _complete_current_step_locked(frame, now)
         return
 

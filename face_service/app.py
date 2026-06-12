@@ -220,7 +220,7 @@ def _action_prompt(action: str) -> str:
     return "Lakukan instruksi di layar"
 
 def _new_challenge_sequence():
-    sequence = random.sample(list(CHALLENGE_ACTIONS), k=1)
+    sequence = random.sample(list(CHALLENGE_ACTIONS), k=2)
     return sequence
 
 def _issue_new_session_locked():

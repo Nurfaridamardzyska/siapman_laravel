@@ -658,7 +658,7 @@ def _extract_best_face(frame):
         face_center_y = y + (h // 2)
         dist_from_center = np.sqrt((face_center_x - center_x) ** 2 + (face_center_y - center_y) ** 2)
 
-        if w > 140 and dist_from_center < (frame_w * 0.45):
+        if w > 80 and dist_from_center < (frame_w * 0.45):
             if area > max_area:
                 max_area = area
                 best_face = (x, y, w, h)

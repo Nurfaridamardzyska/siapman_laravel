@@ -634,7 +634,7 @@ def reset():
         })
 
 def _extract_best_face(frame):
-    small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+    small_frame = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
     rgb_small_frame = small_frame[:, :, ::-1]
     face_locations = face_recognition.face_locations(rgb_small_frame)
     if not face_locations:
@@ -651,8 +651,8 @@ def _extract_best_face(frame):
         if not lm or 'left_eye' not in lm or 'nose_bridge' not in lm:
             continue
 
-        x, y = left * 4, top * 4
-        w, h = (right - left) * 4, (bottom - top) * 4
+        x, y = left * 2, top * 2
+        w, h = (right - left) * 2, (bottom - top) * 2
         area = w * h
         face_center_x = x + (w // 2)
         face_center_y = y + (h // 2)

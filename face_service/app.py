@@ -489,7 +489,7 @@ def register():
         face_locations = face_recognition.face_locations(image)
         
         if not face_locations:
-            return jsonify({"message": "Wajah tidak terdeteksi pada foto"}), 422
+            return jsonify({"message": "Wajah Tidak Terdeteksi"}), 422
             
         # Ambil wajah yang paling besar (paling depan)
         largest_face = max(face_locations, key=lambda rect: abs((rect[2]-rect[0]) * (rect[1]-rect[3])))

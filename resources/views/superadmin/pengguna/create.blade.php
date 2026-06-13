@@ -383,13 +383,12 @@
 
             // Update Instruction Text
             let msg = status;
-            if (status.includes("Idle")) msg = "MOHON TUNGGU...";
+            if (status.includes("Idle") || status.includes("hilang")) msg = "WAJAH TIDAK TERDETEKSI";
             if (status.includes("Mohon diam") || status.includes("Stabilisasi")) msg = "DIAM (TAHAN WAJAH)";
             if (status.includes("berkedip")) msg = "SILAKAN BERKEDIP";
             if (status.includes("geleng")) msg = "GELENGKAN KEPALA (KIRI/KANAN)";
             if (status.includes("mulut")) msg = "BUKA MULUT ANDA";
             if (status.includes("HANYA BOLEH") || status.includes("satu wajah")) msg = "HANYA SATU WAJAH DIIZINKAN!";
-            if (status.includes("hilang")) msg = "WAJAH TIDAK TERLIHAT!";
             if (data.valid) msg = "VERIFIKASI BERHASIL!";
 
             // Update Step Sequence Visuals

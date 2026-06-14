@@ -638,13 +638,11 @@ def verify_face_only():
             
         image = np.array(pil_img)
         
-        # Resize gambar di awal untuk menghemat RAM dan CPU (Max width 800px)
+        # Resize gambar di awal untuk menghemat RAM dan CPU (Max dimension 400px)
         h, w = image.shape[:2]
-        if w > 800:
-            scale = 800.0 / float(w)
-            image = cv2.resize(image, (int(w * scale), int(h * scale)))
-        elif h > 800:
-            scale = 800.0 / float(h)
+        max_dim = max(h, w)
+        if max_dim > 400:
+            scale = 400.0 / float(max_dim)
             image = cv2.resize(image, (int(w * scale), int(h * scale)))
         
         # Deteksi wajah

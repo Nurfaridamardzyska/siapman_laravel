@@ -638,17 +638,17 @@ def verify_face_only():
             
         image = np.array(pil_img)
         
-        # Coba deteksi normal
-        face_locations = face_recognition.face_locations(image, number_of_times_to_upsample=1)
+        # Resize gambar di awal untuk menghemat RAM dan CPU (Max width 800px)
+        h, w = image.shape[:2]
+        if w > 800:
+            scale = 800.0 / float(w)
+            image = cv2.resize(image, (int(w * scale), int(h * scale)))
+        elif h > 800:
+            scale = 800.0 / float(h)
+            image = cv2.resize(image, (int(w * scale), int(h * scale)))
         
-        # Jika gagal, coba perkecil gambar (terkadang resolusi terlalu tinggi bikin AI bingung)
-        if not face_locations:
-            h, w = image.shape[:2]
-            if w > 1000:
-                small_img = cv2.resize(image, (0,0), fx=0.5, fy=0.5)
-                face_locations = face_recognition.face_locations(small_img, number_of_times_to_upsample=1)
-                if face_locations:
-                    image = small_img # Gunakan gambar yang lebih kecil jika berhasil
+        # Deteksi wajah
+        face_locations = face_recognition.face_locations(image, number_of_times_to_upsample=1)
 
         unknown_encodings = face_recognition.face_encodings(image, known_face_locations=face_locations, num_jitters=1)
         

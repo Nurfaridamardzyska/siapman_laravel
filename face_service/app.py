@@ -644,9 +644,8 @@ def verify_face_only():
         if max_dim > 400:
             scale = 400.0 / float(max_dim)
             image = cv2.resize(image, (int(w * scale), int(h * scale)))
-        
-        # Deteksi wajah
-        face_locations = face_recognition.face_locations(image, number_of_times_to_upsample=1)
+        # Deteksi wajah (upsample=0 untuk menghemat CPU dan RAM secara drastis)
+        face_locations = face_recognition.face_locations(image, number_of_times_to_upsample=0)
 
         unknown_encodings = face_recognition.face_encodings(image, known_face_locations=face_locations, num_jitters=1)
         

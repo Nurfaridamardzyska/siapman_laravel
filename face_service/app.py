@@ -27,7 +27,7 @@ if not os.path.exists(KNOWN_FACES_DIR):
 
 STABILIZE_SECONDS = 1.0
 CAMERA_INDEX = 0
-GRACE_PERIOD_SECONDS = 3.0  # Lebih longgar untuk kestabilan (sebelumnya 1.5)
+GRACE_PERIOD_SECONDS = 3.0 
 LIVENESS_PROOF_TTL_SECONDS = 30.0
 MIN_FRAME_INTERVAL_SECONDS = 0.20
 CHALLENGE_ACTIONS = ("blink", "turn")
@@ -607,6 +607,69 @@ def verify():
 
         with _state_lock:
             _reset_validation_locked()
+
+        return jsonify({
+            "matched": matched,
+            "confidence": max(0.0, min(1.0, 1.0 - float(distance))),
+            "distance": float(distance),
+            "threshold": FACE_MATCH_THRESHOLD
+        })
+
+    except Exception as e:
+        return jsonify({"message": str(e)}), 500
+
+@app.route('/verify_face_only', methods=['POST'])
+def verify_face_only():
+    try:
+        file = request.files['face_image']
+        user_id = request.form.get('user_id')
+        if not user_id:
+            return jsonify({"matched": False, "message": "user_id wajib diisi"}), 422
+
+        from PIL import Image, ImageOps
+
+        # Gunakan PIL untuk menangani rotasi EXIF otomatis dari HP
+        pil_img = Image.open(file)
+        pil_img = ImageOps.exif_transpose(pil_img) # Koreksi rotasi otomatis
+        
+        # Konversi ke RGB (face_recognition butuh RGB)
+        if pil_img.mode != 'RGB':
+            pil_img = pil_img.convert('RGB')
+            
+        image = np.array(pil_img)
+        
+        # Coba deteksi normal
+        face_locations = face_recognition.face_locations(image, number_of_times_to_upsample=1)
+        
+        # Jika gagal, coba perkecil gambar (terkadang resolusi terlalu tinggi bikin AI bingung)
+        if not face_locations:
+            h, w = image.shape[:2]
+            if w > 1000:
+                small_img = cv2.resize(image, (0,0), fx=0.5, fy=0.5)
+                face_locations = face_recognition.face_locations(small_img, number_of_times_to_upsample=1)
+                if face_locations:
+                    image = small_img # Gunakan gambar yang lebih kecil jika berhasil
+
+        unknown_encodings = face_recognition.face_encodings(image, known_face_locations=face_locations, num_jitters=1)
+        
+        if not unknown_encodings:
+             return jsonify({
+                 "matched": False, 
+                 "message": "Wajah tidak terdeteksi pada foto. Pastikan pencahayaan cukup dan wajah menghadap lurus ke kamera."
+             }), 422
+        if len(unknown_encodings) > 1:
+            return jsonify({"matched": False, "message": "Terdeteksi lebih dari satu wajah pada foto"}), 422
+             
+        unknown_encoding = unknown_encodings[0]
+        # Pastikan user_id berupa string
+        uid = str(user_id)
+        known_encoding = _known_faces.get(uid)
+        
+        if known_encoding is None:
+            return jsonify({"matched": False, "message": f"Wajah untuk user {uid} belum terdaftar"}), 422
+
+        distance = face_recognition.face_distance([known_encoding], unknown_encoding)[0]
+        matched = bool(distance < FACE_MATCH_THRESHOLD)
 
         return jsonify({
             "matched": matched,

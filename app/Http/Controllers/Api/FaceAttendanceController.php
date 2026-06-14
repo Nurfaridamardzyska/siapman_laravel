@@ -207,14 +207,21 @@ class FaceAttendanceController extends Controller
     public function verify(Request $request)
     {
         try {
-            $request->validate([
+            $isLocalLiveness = $request->boolean('local_liveness');
+
+            $rules = [
                 'face_image' => 'required|image',
-                'type' => 'required|in:masuk,pulang',
+                'type' => 'required|in:masuk,pulang,apel',
                 'latitude' => 'required|numeric',
                 'longitude' => 'required|numeric',
-                'session_id' => 'required|string',
-                'liveness_token' => 'required|string',
-            ]);
+            ];
+
+            if (!$isLocalLiveness) {
+                $rules['session_id'] = 'required|string';
+                $rules['liveness_token'] = 'required|string';
+            }
+
+            $request->validate($rules);
 
             $debugMode = $request->boolean('debug_mode');
             if ($debugMode && !$this->allowDebugBypass()) {
@@ -272,15 +279,19 @@ class FaceAttendanceController extends Controller
             }
             // --- End Lokasi Check ---
 
+            $endpoint = $isLocalLiveness ? '/verify_face_only' : '/verify';
+            $postData = ['user_id' => $user->id];
+            
+            if (!$isLocalLiveness) {
+                $postData['session_id'] = $request->session_id;
+                $postData['liveness_token'] = $request->liveness_token;
+            }
+
             $response = $this->faceHttpClient()->attach(
                 'face_image',
                 file_get_contents($request->file('face_image')->getRealPath()),
                 $request->file('face_image')->getClientOriginalName()
-            )->post($this->faceServiceUrl() . '/verify', [
-                'user_id' => $user->id,
-                'session_id' => $request->session_id,
-                'liveness_token' => $request->liveness_token,
-            ]);
+            )->post($this->faceServiceUrl() . $endpoint, $postData);
 
             $result = $this->responsePayload($response);
 

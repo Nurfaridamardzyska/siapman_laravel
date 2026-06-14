@@ -44,20 +44,32 @@
                     </div>
 
                     {{-- NOTIFICATION BELL --}}
-                    <div x-data="{ open: false }" class="relative">
-                        @php
-                            $unreadNotifications = auth()->user()->unreadNotifications;
-                            $unreadCount = $unreadNotifications->count();
-                        @endphp
-                        <button @click="open = !open" class="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors focus:outline-none">
+                    @php
+                        $unreadNotifications = auth()->user()->unreadNotifications;
+                        $unreadCount = $unreadNotifications->count();
+                    @endphp
+                    <div x-data="{ 
+                            open: false,
+                            unread: {{ $unreadCount }},
+                            markRead() {
+                                if (this.unread > 0) {
+                                    fetch('{{ route('notifications.mark-as-read') }}', {
+                                        method: 'POST',
+                                        headers: {
+                                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                            'Accept': 'application/json'
+                                        }
+                                    });
+                                    this.unread = 0;
+                                }
+                            }
+                        }" class="relative">
+                        <button @click="open = !open; if(open) markRead();" class="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors focus:outline-none">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                             </svg>
-                            @if($unreadCount > 0)
-                                <span class="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white ring-2 ring-white">
-                                    {{ $unreadCount > 9 ? '9+' : $unreadCount }}
-                                </span>
-                            @endif
+                            <span x-show="unread > 0" x-cloak x-text="unread > 9 ? '9+' : unread" class="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white ring-2 ring-white">
+                            </span>
                         </button>
 
                         <div x-show="open" 
@@ -70,12 +82,6 @@
                             <div class="px-4 py-2 border-b border-slate-50 flex justify-between items-center">
                                 <span class="text-sm font-bold text-slate-800">Notifikasi</span>
                                 <div class="flex items-center gap-2">
-                                    @if($unreadCount > 0)
-                                        <form action="{{ route('notifications.mark-as-read') }}" method="POST">
-                                            @csrf
-                                            <button type="submit" class="text-xs text-blue-600 hover:underline">Tandai dibaca</button>
-                                        </form>
-                                    @endif
                                     <button @click="open = false" class="text-slate-400 hover:text-slate-600">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />

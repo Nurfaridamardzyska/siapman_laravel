@@ -54,7 +54,7 @@ class FaceAttendanceController extends Controller
 
     private function faceHttpClient()
     {
-        $timeout = (int) config('face.service_timeout_seconds', 20);
+        $timeout = (int) config('face.service_timeout_seconds', 60);
         $connectTimeout = (int) config('face.service_connect_timeout_seconds', 5);
 
         return Http::timeout($timeout)->connectTimeout($connectTimeout);

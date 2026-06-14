@@ -24,6 +24,6 @@ return [
     'request_signing_secret' => (string) env('FACE_REQUEST_SIGNING_SECRET', ''),
 
     // Face service HTTP client
-    'service_timeout_seconds' => (int) env('FACE_SERVICE_TIMEOUT_SECONDS', 20),
+    'service_timeout_seconds' => (int) env('FACE_SERVICE_TIMEOUT_SECONDS', 60),
     'service_connect_timeout_seconds' => (int) env('FACE_SERVICE_CONNECT_TIMEOUT_SECONDS', 5),
 ];

@@ -253,7 +253,7 @@
 </div>
 
 <script>
-    const FACE_SERVICE_URL = "http://188.166.184.53/face-api";
+    const FACE_SERVICE_URL = "/face-api";
 
     document.addEventListener('DOMContentLoaded', function() {
         const form = document.querySelector('form');

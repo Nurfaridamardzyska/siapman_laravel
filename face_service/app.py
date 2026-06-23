@@ -25,9 +25,9 @@ KNOWN_FACES_DIR = os.path.join(os.path.dirname(__file__), "known_faces")
 if not os.path.exists(KNOWN_FACES_DIR):
     os.makedirs(KNOWN_FACES_DIR)
 
-STABILIZE_SECONDS = 2.0
+STABILIZE_SECONDS = 1.0
 CAMERA_INDEX = 0
-GRACE_PERIOD_SECONDS = 3.0  # Lebih longgar untuk kestabilan (sebelumnya 1.5)
+GRACE_PERIOD_SECONDS = 3.0 
 LIVENESS_PROOF_TTL_SECONDS = 30.0
 MIN_FRAME_INTERVAL_SECONDS = 0.20
 CHALLENGE_ACTIONS = ("blink", "turn")
@@ -40,8 +40,8 @@ FACE_MATCH_THRESHOLD = float(os.getenv("FACE_MATCH_THRESHOLD", "0.6"))
 EMBEDDINGS_KEY = os.getenv("FACE_EMBEDDINGS_KEY", "").strip()
 
 # Thresholds for liveliness (Relaxed for better UX)
-EAR_THRESHOLD = 0.22
-TURN_THRESHOLD = 1.40
+EAR_THRESHOLD = 0.24
+TURN_THRESHOLD = 1.15
 MOUTH_OPEN_THRESHOLD = 0.25
 PASSIVE_BLUR_MIN = float(os.getenv("FACE_PASSIVE_BLUR_MIN", "15.0"))
 PASSIVE_HIGHLIGHT_MAX = float(os.getenv("FACE_PASSIVE_HIGHLIGHT_MAX", "0.30"))
@@ -62,6 +62,9 @@ _current_step = 0
 _step_start_time = 0.0
 _blink_detected = False
 _turn_detected = False
+_blink_count = 0
+_turn_left = False
+_turn_right = False
 _challenge_sequence = []
 _session_id = None
 _proof_token = None
@@ -218,7 +221,6 @@ def _action_prompt(action: str) -> str:
 
 def _new_challenge_sequence():
     sequence = random.sample(list(CHALLENGE_ACTIONS), k=2)
-    random.shuffle(sequence)
     return sequence
 
 def _issue_new_session_locked():
@@ -246,7 +248,7 @@ def _status_payload_locked():
 
 # ================= VALIDATION =================
 def _reset_validation_locked():
-    global _first_detected_at, _status_text, _valid, _elapsed_sec, _last_face_seen_at, _current_step, _blink_detected, _turn_detected, _step_start_time, _last_valid_frame, _proof_token, _proof_expires_at, _last_frame_processed_at, _mouth_detected, _motion_samples, _last_face_center
+    global _first_detected_at, _status_text, _valid, _elapsed_sec, _last_face_seen_at, _current_step, _blink_detected, _turn_detected, _step_start_time, _last_valid_frame, _proof_token, _proof_expires_at, _last_frame_processed_at, _mouth_detected, _motion_samples, _last_face_center, _blink_count, _turn_left, _turn_right
     _first_detected_at = None
     _status_text = "Idle"
     _warning_text = ""
@@ -257,6 +259,9 @@ def _reset_validation_locked():
     _step_start_time = 0.0
     _blink_detected = False
     _turn_detected = False
+    _blink_count = 0
+    _turn_left = False
+    _turn_right = False
     _mouth_detected = False
     _last_valid_frame = None
     _proof_token = None
@@ -267,11 +272,14 @@ def _reset_validation_locked():
     _issue_new_session_locked()
 
 def _complete_current_step_locked(frame, now: float):
-    global _current_step, _step_start_time, _blink_detected, _turn_detected, _mouth_detected, _valid, _status_text, _last_valid_frame, _proof_token, _proof_expires_at
+    global _current_step, _step_start_time, _blink_detected, _turn_detected, _mouth_detected, _valid, _status_text, _last_valid_frame, _proof_token, _proof_expires_at, _blink_count, _turn_left, _turn_right
     _current_step += 1
     _step_start_time = now
     _blink_detected = False
     _turn_detected = False
+    _blink_count = 0
+    _turn_left = False
+    _turn_right = False
     _mouth_detected = False
 
     if (_current_step - 1) >= len(_challenge_sequence):
@@ -287,7 +295,7 @@ def _complete_current_step_locked(frame, now: float):
         print(f">>> STEP {_current_step}: {_action_label(next_action)} <<<")
 
 def _update_validation_locked(frame, faces, now: float):
-    global _first_detected_at, _status_text, _valid, _elapsed_sec, _last_face_seen_at, _current_step, _blink_detected, _turn_detected, _step_start_time, _last_valid_frame, _proof_token, _proof_expires_at, _last_frame_processed_at, _mouth_detected, _motion_samples, _last_face_center
+    global _first_detected_at, _status_text, _valid, _elapsed_sec, _last_face_seen_at, _current_step, _blink_detected, _turn_detected, _step_start_time, _last_valid_frame, _proof_token, _proof_expires_at, _last_frame_processed_at, _mouth_detected, _motion_samples, _last_face_center, _blink_count, _turn_left, _turn_right
 
     if (_last_frame_processed_at > 0) and ((now - _last_frame_processed_at) < MIN_FRAME_INTERVAL_SECONDS):
         return
@@ -364,6 +372,9 @@ def _update_validation_locked(frame, faces, now: float):
             _step_start_time = now
             _blink_detected = False
             _turn_detected = False
+            _blink_count = 0
+            _turn_left = False
+            _turn_right = False
             _mouth_detected = False
             first_action = _challenge_sequence[0]
             _status_text = _action_prompt(first_action)
@@ -390,7 +401,7 @@ def _update_validation_locked(frame, faces, now: float):
             if avg_ear < EAR_THRESHOLD:
                 _blink_detected = True
 
-            if _blink_detected and avg_ear > (EAR_THRESHOLD + 0.05) and (now - _step_start_time) > 0.8:
+            if _blink_detected and avg_ear > (EAR_THRESHOLD + 0.04) and (now - _step_start_time) > 0.3:
                 _complete_current_step_locked(frame, now)
         return
 
@@ -406,13 +417,26 @@ def _update_validation_locked(frame, faces, now: float):
 
             dist_l = np.linalg.norm(np.array(nose_tip) - np.array(eye_l))
             dist_r = np.linalg.norm(np.array(nose_tip) - np.array(eye_r))
-            ratio = max(dist_l, dist_r) / (min(dist_l, dist_r) + 0.001)
+            
+            # Kiri: dist_r > dist_l * TURN_THRESHOLD
+            if dist_r > dist_l * TURN_THRESHOLD:
+                _turn_left = True
+            # Kanan: dist_l > dist_r * TURN_THRESHOLD
+            if dist_l > dist_r * TURN_THRESHOLD:
+                _turn_right = True
 
-            if ratio > TURN_THRESHOLD:
-                _turn_detected = True
-
-            if _turn_detected and ratio < (TURN_THRESHOLD - 0.2) and (now - _step_start_time) > 0.8:
-                _complete_current_step_locked(frame, now)
+            msg = "Silakan gelengkan kepala (Kanan & Kiri)"
+            if _turn_left and not _turn_right:
+                msg = "Bagus, sekarang balas geleng ke Kanan"
+            elif _turn_right and not _turn_left:
+                msg = "Bagus, sekarang balas geleng ke Kiri"
+            
+            _status_text = msg
+            
+            if _turn_left and _turn_right:
+                ratio = max(dist_l, dist_r) / (min(dist_l, dist_r) + 0.001)
+                if ratio < 1.15: # Kembali ke tengah
+                    _complete_current_step_locked(frame, now)
         return
 
     if current_action == "mouth":
@@ -465,7 +489,7 @@ def register():
         face_locations = face_recognition.face_locations(image)
         
         if not face_locations:
-            return jsonify({"message": "Wajah tidak terdeteksi pada foto"}), 422
+            return jsonify({"message": "Wajah Tidak Terdeteksi"}), 422
             
         # Ambil wajah yang paling besar (paling depan)
         largest_face = max(face_locations, key=lambda rect: abs((rect[2]-rect[0]) * (rect[1]-rect[3])))
@@ -594,6 +618,66 @@ def verify():
     except Exception as e:
         return jsonify({"message": str(e)}), 500
 
+@app.route('/verify_face_only', methods=['POST'])
+def verify_face_only():
+    try:
+        file = request.files['face_image']
+        user_id = request.form.get('user_id')
+        if not user_id:
+            return jsonify({"matched": False, "message": "user_id wajib diisi"}), 422
+
+        from PIL import Image, ImageOps
+
+        # Gunakan PIL untuk menangani rotasi EXIF otomatis dari HP
+        pil_img = Image.open(file)
+        pil_img = ImageOps.exif_transpose(pil_img) # Koreksi rotasi otomatis
+        
+        # Konversi ke RGB (face_recognition butuh RGB)
+        if pil_img.mode != 'RGB':
+            pil_img = pil_img.convert('RGB')
+            
+        image = np.array(pil_img)
+        
+        # Resize gambar di awal untuk menghemat RAM dan CPU (Max dimension 400px)
+        h, w = image.shape[:2]
+        max_dim = max(h, w)
+        if max_dim > 400:
+            scale = 400.0 / float(max_dim)
+            image = cv2.resize(image, (int(w * scale), int(h * scale)))
+        # Deteksi wajah (upsample=0 untuk menghemat CPU dan RAM secara drastis)
+        face_locations = face_recognition.face_locations(image, number_of_times_to_upsample=0)
+
+        unknown_encodings = face_recognition.face_encodings(image, known_face_locations=face_locations, num_jitters=1)
+        
+        if not unknown_encodings:
+             return jsonify({
+                 "matched": False, 
+                 "message": "Wajah tidak terdeteksi pada foto. Pastikan pencahayaan cukup dan wajah menghadap lurus ke kamera."
+             }), 422
+        if len(unknown_encodings) > 1:
+            return jsonify({"matched": False, "message": "Terdeteksi lebih dari satu wajah pada foto"}), 422
+             
+        unknown_encoding = unknown_encodings[0]
+        # Pastikan user_id berupa string
+        uid = str(user_id)
+        known_encoding = _known_faces.get(uid)
+        
+        if known_encoding is None:
+            return jsonify({"matched": False, "message": f"Wajah untuk user {uid} belum terdaftar"}), 422
+
+        distance = face_recognition.face_distance([known_encoding], unknown_encoding)[0]
+        matched = bool(distance < FACE_MATCH_THRESHOLD)
+
+        return jsonify({
+            "matched": matched,
+            "confidence": max(0.0, min(1.0, 1.0 - float(distance))),
+            "distance": float(distance),
+            "threshold": FACE_MATCH_THRESHOLD
+        })
+
+    except Exception as e:
+        return jsonify({"message": str(e)}), 500
+
 @app.route('/status')
 def status():
     with _state_lock:
@@ -610,7 +694,7 @@ def reset():
         })
 
 def _extract_best_face(frame):
-    small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+    small_frame = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
     rgb_small_frame = small_frame[:, :, ::-1]
     face_locations = face_recognition.face_locations(rgb_small_frame)
     if not face_locations:
@@ -627,14 +711,14 @@ def _extract_best_face(frame):
         if not lm or 'left_eye' not in lm or 'nose_bridge' not in lm:
             continue
 
-        x, y = left * 4, top * 4
-        w, h = (right - left) * 4, (bottom - top) * 4
+        x, y = left * 2, top * 2
+        w, h = (right - left) * 2, (bottom - top) * 2
         area = w * h
         face_center_x = x + (w // 2)
         face_center_y = y + (h // 2)
         dist_from_center = np.sqrt((face_center_x - center_x) ** 2 + (face_center_y - center_y) ** 2)
 
-        if w > 140 and dist_from_center < (frame_w * 0.45):
+        if w > 80 and dist_from_center < (frame_w * 0.45):
             if area > max_area:
                 max_area = area
                 best_face = (x, y, w, h)

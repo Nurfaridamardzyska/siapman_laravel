@@ -62,6 +62,12 @@ _current_step = 0
 _step_start_time = 0.0
 _blink_detected = False
 _turn_detected = False
+    _blink_count = 0
+    _turn_left = False
+    _turn_right = False
+    _blink_count = 0
+    _turn_left = False
+    _turn_right = False
 _blink_count = 0
 _turn_left = False
 _turn_right = False
@@ -248,7 +254,7 @@ def _status_payload_locked():
 
 # ================= VALIDATION =================
 def _reset_validation_locked():
-    global _first_detected_at, _status_text, _valid, _elapsed_sec, _last_face_seen_at, _current_step, _blink_detected, _turn_detected, _step_start_time, _last_valid_frame, _proof_token, _proof_expires_at, _last_frame_processed_at, _mouth_detected, _motion_samples, _last_face_center, _blink_count, _turn_left, _turn_right
+    global _first_detected_at, _status_text, _valid, _elapsed_sec, _last_face_seen_at, _current_step, _blink_detected, _turn_detected, _step_start_time, _last_valid_frame, _proof_token, _proof_expires_at, _last_frame_processed_at, _mouth_detected, _motion_samples, _last_face_center, _blink_count, _turn_left, _turn_right, _blink_count, _turn_left, _turn_right
     _first_detected_at = None
     _status_text = "Idle"
     _warning_text = ""
@@ -262,6 +268,12 @@ def _reset_validation_locked():
     _blink_count = 0
     _turn_left = False
     _turn_right = False
+    _blink_count = 0
+    _turn_left = False
+    _turn_right = False
+    _blink_count = 0
+    _turn_left = False
+    _turn_right = False
     _mouth_detected = False
     _last_valid_frame = None
     _proof_token = None
@@ -272,11 +284,14 @@ def _reset_validation_locked():
     _issue_new_session_locked()
 
 def _complete_current_step_locked(frame, now: float):
-    global _current_step, _step_start_time, _blink_detected, _turn_detected, _mouth_detected, _valid, _status_text, _last_valid_frame, _proof_token, _proof_expires_at, _blink_count, _turn_left, _turn_right
+    global _current_step, _step_start_time, _blink_detected, _turn_detected, _mouth_detected, _valid, _status_text, _last_valid_frame, _proof_token, _proof_expires_at, _blink_count, _turn_left, _turn_right, _blink_count, _turn_left, _turn_right
     _current_step += 1
     _step_start_time = now
     _blink_detected = False
     _turn_detected = False
+    _blink_count = 0
+    _turn_left = False
+    _turn_right = False
     _blink_count = 0
     _turn_left = False
     _turn_right = False
@@ -295,7 +310,7 @@ def _complete_current_step_locked(frame, now: float):
         print(f">>> STEP {_current_step}: {_action_label(next_action)} <<<")
 
 def _update_validation_locked(frame, faces, now: float):
-    global _first_detected_at, _status_text, _valid, _elapsed_sec, _last_face_seen_at, _current_step, _blink_detected, _turn_detected, _step_start_time, _last_valid_frame, _proof_token, _proof_expires_at, _last_frame_processed_at, _mouth_detected, _motion_samples, _last_face_center, _blink_count, _turn_left, _turn_right
+    global _first_detected_at, _status_text, _valid, _elapsed_sec, _last_face_seen_at, _current_step, _blink_detected, _turn_detected, _step_start_time, _last_valid_frame, _proof_token, _proof_expires_at, _last_frame_processed_at, _mouth_detected, _motion_samples, _last_face_center, _blink_count, _turn_left, _turn_right, _blink_count, _turn_left, _turn_right
 
     if (_last_frame_processed_at > 0) and ((now - _last_frame_processed_at) < MIN_FRAME_INTERVAL_SECONDS):
         return
@@ -372,6 +387,9 @@ def _update_validation_locked(frame, faces, now: float):
             _step_start_time = now
             _blink_detected = False
             _turn_detected = False
+    _blink_count = 0
+    _turn_left = False
+    _turn_right = False
             _blink_count = 0
             _turn_left = False
             _turn_right = False

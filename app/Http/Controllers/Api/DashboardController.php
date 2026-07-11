@@ -51,6 +51,7 @@ class DashboardController extends Controller
         $totalHadir = 0;
         $totalLate = 0;
         $totalAlpha = 0;
+        $totalIzin = 0;
         $reductionPercent = 0.0;
 
         for ($d = 1; $d <= $now->daysInMonth; $d++) {
@@ -73,6 +74,7 @@ class DashboardController extends Controller
                 ->exists();
 
             if ($hasApprovedDoc) {
+                $totalIzin++;
                 // Skip deduction for approved leave
                 continue;
             }
@@ -159,7 +161,9 @@ class DashboardController extends Controller
         return response()->json([
             'message' => 'Data TPP berhasil diambil',
             'data' => [
+                'total_hari_kerja' => $totalWorkingDaysInMonth,
                 'total_hadir' => $totalHadir,
+                'total_izin' => $totalIzin,
                 'total_late' => $totalLate,
                 'total_alpha' => $totalAlpha,
                 'total_tpp' => (int)$totalTpp,
